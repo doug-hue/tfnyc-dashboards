@@ -334,6 +334,7 @@ html,body{background:var(--black);color:var(--text);font-family:var(--mono);font
     <input type="password" id="pat" placeholder="patXXXXXXXXXXXX.xxxxxxxx…">
     <div class="modal-status" id="msg"></div>
     <div class="modal-buttons">
+      <button onclick="clearCacheAndReset()" title="Wipe cached data and reload to embedded snapshot">Clear cache</button>
       <button onclick="closeRefresh()">Cancel</button>
       <button class="primary" onclick="doRefresh()">Pull</button>
     </div>
@@ -1152,6 +1153,7 @@ async function doRefresh() {
       baseId, departments, projects, workOrders
     };
     STATE.expandedProjects = new Set(projects.map(p => p.code));
+    saveCache();
     setMsg('Loaded ' + workOrders.length + ' WOs across ' + projects.length + ' projects.', false);
     render();
     setTimeout(closeRefresh, 800);
@@ -1180,6 +1182,52 @@ function setMsg(m, isErr) {
 }
 
 // ===========================================================================
+// CACHE — persist last live pull across reloads
+//
+// Without this, every page refresh dumps the user back to the embedded
+// snapshot. Cache is browser-local (same scope as the PAT). Lives until
+// the next successful pull overwrites it or the user clicks Clear cache.
+// ===========================================================================
+const CACHE_KEY = 'tfnyc.heatmap.data.v1';
+function saveCache() {
+  try {
+    const payload = {
+      asOf: STATE.data.asOf,
+      baseId: STATE.data.baseId,
+      departments: STATE.data.departments,
+      projects: STATE.data.projects,
+      workOrders: STATE.data.workOrders,
+      cachedAt: new Date().toISOString()
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+  } catch (e) { /* quota / serialization — ignore */ }
+}
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (!obj || !Array.isArray(obj.workOrders) || !Array.isArray(obj.departments)) return false;
+    STATE.data = {
+      asOf: obj.asOf || ('cached · ' + (obj.cachedAt || '').slice(0,10)),
+      baseId: obj.baseId,
+      departments: obj.departments,
+      projects: obj.projects || [],
+      workOrders: obj.workOrders
+    };
+    STATE.expandedProjects = new Set((obj.projects || []).map(p => p.code));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function clearCacheAndReset() {
+  try { localStorage.removeItem(CACHE_KEY); } catch(e) {}
+  // Reload back to the embedded snapshot
+  location.reload();
+}
+
+// ===========================================================================
 // UTIL
 // ===========================================================================
 function escapeHtml(s) {
@@ -1189,6 +1237,10 @@ function escapeHtml(s) {
 // ===========================================================================
 // BOOT
 // ===========================================================================
+// Restore last live pull from localStorage if present — otherwise fall back
+// to the embedded SNAPSHOT. Either way, render with what we have first so
+// the page loads instantly; the user can hit Pull to refresh.
+loadCache();
 STATE.anchor = todayUTC();
 render();
 setInterval(() => {
