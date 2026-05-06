@@ -4,10 +4,10 @@ Custom HTML dashboards for TFNYC Production. Each lives here as a static file, s
 
 ## Live URLs
 
-- **Hub** — `https://YOUR-USERNAME.github.io/tfnyc-dashboards/`
-- **Capacity Heat Map** — `https://YOUR-USERNAME.github.io/tfnyc-dashboards/heatmap.html`
+- **Hub** — `https://doug-hue.github.io/tfnyc-dashboards/`
+- **Capacity Heat Map** — `https://doug-hue.github.io/tfnyc-dashboards/heatmap.html`
 
-*(Replace `YOUR-USERNAME` with the GitHub account or org hosting this repo.)*
+*(Replace `doug-hue` with the GitHub account or org hosting this repo.)*
 
 ## What's in the repo
 
