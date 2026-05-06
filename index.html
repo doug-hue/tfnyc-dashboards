@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFNYC | Dashboards Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#0c0f1a; --steel:#141828; --panel:#1c2236; --panel2:#242c44;
+  --border:#2a3050; --border-hi:#384060;
+  --text:#8898b8; --dim:#485070; --bright:#dce4f8;
+  --amber:#F5C400; --amber-lo:#3d2e00; --amber-dim:rgba(245,196,0,.12);
+  --green:#0057A8; --orange:#E07000;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'Barlow',ui-sans-serif,sans-serif;
+  --disp:'Bebas Neue',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--black);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.5;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");}
+
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;
+  background:var(--steel);border-bottom:1px solid var(--border);}
+.hdr-logo{display:flex;align-items:baseline;gap:14px;}
+.logo{font-family:var(--disp);font-size:28px;letter-spacing:5px;color:var(--amber);line-height:1;}
+.logo-sub{font-size:10px;letter-spacing:5px;color:var(--dim);text-transform:uppercase;}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2.4s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.wrap{max-width:1100px;margin:0 auto;padding:48px 32px 80px;}
+.intro{margin-bottom:36px;}
+.intro h1{font-family:var(--disp);font-size:32px;letter-spacing:4px;color:var(--bright);margin-bottom:8px;}
+.intro p{color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;max-width:700px;}
+
+.sec{display:flex;align-items:center;gap:12px;margin:36px 0 18px;}
+.sec-t{font-family:var(--disp);font-size:18px;letter-spacing:4px;color:var(--bright);text-transform:uppercase;}
+.sec-c{font-size:9px;letter-spacing:2px;color:var(--dim);border:1px solid var(--border);padding:3px 8px;border-radius:2px;text-transform:uppercase;}
+.sec-l{flex:1;height:1px;background:var(--border);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:20px 22px;
+  text-decoration:none;color:inherit;display:block;transition:all .15s;cursor:pointer;}
+.card:hover{border-color:var(--amber);background:var(--panel2);transform:translateY(-1px);}
+.card .tag{font-size:8px;letter-spacing:2px;color:var(--amber);text-transform:uppercase;margin-bottom:8px;font-weight:600;}
+.card h3{font-family:var(--sans);font-weight:500;font-size:17px;color:var(--bright);margin-bottom:6px;letter-spacing:.3px;}
+.card p{font-family:var(--sans);font-size:12px;color:var(--dim);line-height:1.5;}
+.card .meta{display:flex;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;}
+.card .meta span{display:flex;align-items:center;gap:5px;}
+.card .meta .ok{color:var(--green);}
+.card .meta .draft{color:var(--orange);}
+.card .arrow{margin-top:14px;display:flex;align-items:center;gap:6px;color:var(--amber);font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;}
+.card.placeholder{opacity:.5;pointer-events:none;}
+.card.placeholder:hover{transform:none;border-color:var(--border);}
+
+.ftr{padding:18px 32px;border-top:1px solid var(--border);background:var(--steel);
+  display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--dim);letter-spacing:1px;margin-top:60px;}
+.ftr a{color:var(--text);text-decoration:none;}
+.ftr a:hover{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">
+    <span class="logo">TFNYC</span>
+    <span class="logo-sub">Dashboards Hub</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="pulse"></div>
+    <span style="font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;">Production Operations</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>Operational Dashboards</h1>
+    <p>Single home for every custom dashboard built for TFNYC production. Each lives as a static HTML page in this repo, hosted via GitHub Pages, linked from the relevant Airtable Interface so it's reachable from inside the operational nav. Click any card to open the dashboard. To add a new dashboard: add the .html file to this repo and add a card here.</p>
+  </div>
+
+  <div class="sec">
+    <span class="sec-t">Capacity &amp; Scheduling</span>
+    <span class="sec-c">1 live</span>
+    <div class="sec-l"></div>
+  </div>
+  <div class="grid">
+    <a class="card" href="heatmap.html">
+      <div class="tag">Shop Manager · Director</div>
+      <h3>Capacity Heat Map</h3>
+      <p>Per-day load by project and department. Project rows expand into dept sub-rows. Daily ceilings, dept-total rollups, shop total, overhire-needed row at the bottom. Pulls live from the TFNYC Production v1 base.</p>
+      <div class="meta">
+        <span class="ok">⬤ Live</span>
+        <span>Desktop</span>
+        <span>v1 · 2026-05-05</span>
+      </div>
+      <div class="arrow">Open dashboard →</div>
+    </a>
+  </div>
+
+  <div class="sec">
+    <span class="sec-t">Coming Soon</span>
+    <span class="sec-c">build queue</span>
+    <div class="sec-l"></div>
+  </div>
+  <div class="grid">
+    <div class="card placeholder">
+      <div class="tag">DeptM · PM</div>
+      <h3>Project Performance</h3>
+      <p>Per-project Earned vs Actual hours, schedule health RAG, Performance % trends across active projects.</p>
+      <div class="meta"><span class="draft">Planned</span><span>Desktop</span></div>
+    </div>
+    <div class="card placeholder">
+      <div class="tag">Estimator</div>
+      <h3>Capacity Test Scenario Planner</h3>
+      <p>Bid WOs alongside Pending/Active to model what winning a job does to floor capacity. Drag-and-drop scheduling.</p>
+      <div class="meta"><span class="draft">Planned</span><span>Desktop</span></div>
+    </div>
+    <div class="card placeholder">
+      <div class="tag">Director</div>
+      <h3>Portfolio Performance</h3>
+      <p>All active projects, performance health, cash flow, install timeline, alerts. Director-level operational overview.</p>
+      <div class="meta"><span class="draft">Planned</span><span>Desktop</span></div>
+    </div>
+  </div>
+</div>
+
+<footer class="ftr">
+  <div>TFNYC Production · Custom dashboards on GitHub Pages · linked from Airtable Interfaces</div>
+  <div><a href="https://airtable.com/appKKB4SwDK9cDcSc" target="_blank">Airtable base ↗</a></div>
+</footer>
+
+</body>
+</html>
