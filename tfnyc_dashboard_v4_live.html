@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TFNYC | Production Dashboard (Live)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black:#0c0f1a; --steel:#141828; --panel:#1c2236; --panel2:#242c44;
+  --border:#2a3050; --border-hi:#384060; --week-line:#485070;
+  --text:#8898b8; --dim:#485070; --bright:#dce4f8;
+  --amber:#F5C400; --amber-lo:#3d2e00; --amber-dim:rgba(245,196,0,.12);
+  --red:#CC2200; --red-lo:#3a0c06; --red-dim:rgba(204,34,0,.1);
+  --blue:#0057A8; --blue-lo:#001838; --blue-dim:rgba(0,87,168,.1);
+  --green:#1f9d55; --green-lo:#0c3d22; --green-dim:rgba(31,157,85,.1);
+  --orange:#E07000; --orange-lo:#3d2000;
+  --purple:#8868cc; --purple-dim:rgba(136,104,204,.1);
+
+  --c-empty:#0e1222;
+  --c-green:#0057A8; --c-green-text:#c8dcf0;
+  --c-amber:#F5C400; --c-amber-text:#3d2e00;
+  --c-red:#CC2200; --c-red-text:#ffd0c0;
+  --c-redhot:#ff2200; --c-redhot-text:#ffffff;
+  --c-install:#E07000; --c-install-text:#fff0c0;
+
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'Barlow',ui-sans-serif,sans-serif;
+  --disp:'Bebas Neue',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--black);color:var(--text);font-family:var(--mono);font-size:12px;min-height:100vh;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 26px;gap:18px;
+  background:var(--steel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;}
+.hdr-logo{display:flex;align-items:baseline;gap:12px;flex-shrink:0;}
+.logo{font-family:var(--disp);font-size:24px;letter-spacing:4px;color:var(--amber);line-height:1;}
+.logo-sub{font-size:9px;letter-spacing:5px;color:var(--dim);text-transform:uppercase;}
+.view-tabs{display:flex;border:1px solid var(--border-hi);border-radius:3px;overflow:hidden;}
+.view-tabs button{padding:7px 16px;border:none;background:transparent;color:var(--dim);cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;transition:all .12s;}
+.view-tabs button:hover{color:var(--text);}
+.view-tabs button.on{background:var(--amber);color:var(--black);font-weight:600;}
+.hdr-right{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.fetch-stamp{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;}
+.fetch-stamp .lab{font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+.fetch-stamp .val{font-family:var(--mono);font-size:11px;color:var(--bright);letter-spacing:.5px;}
+.fetch-stamp .val.stale{color:var(--amber);}
+.fetch-stamp .val.empty{color:var(--red);}
+.refresh-btn{background:transparent;border:1px solid var(--border-hi);color:var(--text);
+  font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:6px 12px;border-radius:2px;cursor:pointer;transition:all .12s;font-weight:500;}
+.refresh-btn:hover{border-color:var(--amber);color:var(--amber);}
+.refresh-btn.loading{border-color:var(--amber);color:var(--amber);opacity:.6;pointer-events:none;}
+.refresh-btn.loading::after{content:' …';}
+.pat-btn{background:transparent;border:1px solid var(--border);color:var(--dim);
+  font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  padding:6px 8px;border-radius:2px;cursor:pointer;transition:all .12s;}
+.pat-btn:hover{color:var(--text);border-color:var(--border-hi);}
+.pat-btn.set{color:var(--green);border-color:var(--green-lo);}
+
+/* KPI STRIP */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);
+  border-bottom:2px solid var(--amber-lo);background:var(--steel);}
+.kpi{padding:13px 18px;border-right:1px solid var(--border);animation:fu .35s ease both;}
+.kpi:last-child{border-right:none;}
+.kl{font-size:8px;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;margin-bottom:4px;}
+.kv{font-family:var(--disp);font-size:26px;color:var(--bright);line-height:1;}
+.kv.warn{color:var(--amber);}
+.kv.hot{color:var(--red);}
+.kv.ok{color:var(--green);}
+.ks{font-size:9px;color:var(--dim);margin-top:3px;}
+@keyframes fu{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
+
+/* MAIN */
+.main{padding:20px 26px 60px;display:flex;flex-direction:column;gap:18px;}
+
+/* SECTION HEADER */
+.sec{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.sec-t{font-family:var(--disp);font-size:15px;letter-spacing:3px;color:var(--bright);}
+.sec-c{font-size:8px;letter-spacing:2px;color:var(--dim);border:1px solid var(--border);padding:2px 7px;border-radius:2px;}
+.sec-l{flex:1;height:1px;background:var(--border);}
+.sec-ctrls{display:flex;align-items:center;gap:8px;}
+
+/* CONTROLS */
+.toggle{display:inline-flex;border:1px solid var(--border-hi);border-radius:3px;overflow:hidden;}
+.toggle button{padding:6px 13px;border:none;background:transparent;color:var(--dim);cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:500;transition:all .12s;}
+.toggle button:hover{color:var(--text);}
+.toggle button.on{background:var(--amber);color:var(--black);font-weight:600;}
+.nav-btn{background:transparent;border:1px solid var(--border-hi);color:var(--dim);
+  font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;
+  padding:6px 11px;border-radius:2px;cursor:pointer;transition:all .12s;}
+.nav-btn:hover{border-color:var(--amber);color:var(--amber);}
+
+/* CEILINGS BAR */
+.ceil-bar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);
+  border:1px solid var(--border);border-radius:3px;font-size:10px;flex-wrap:wrap;}
+
+/* DEPARTMENT UTILIZATION STRIP */
+.util-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.util-tile{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:11px 13px;}
+.util-tile .ut-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px;}
+.util-tile .ut-name{font-size:10px;letter-spacing:1.5px;color:var(--bright);text-transform:uppercase;font-weight:500;}
+.util-tile .ut-pct{font-family:var(--disp);font-size:22px;letter-spacing:1px;line-height:1;}
+.util-tile .ut-pct.green{color:var(--green);}
+.util-tile .ut-pct.amber{color:var(--amber);}
+.util-tile .ut-pct.red{color:var(--red);}
+.util-tile .ut-pct.redhot{color:var(--c-redhot);}
+.util-tile .ut-track{height:6px;background:var(--steel);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.util-tile .ut-fill{height:100%;border-radius:2px;transition:width .3s;}
+.util-tile .ut-fill.green{background:var(--green);}
+.util-tile .ut-fill.amber{background:var(--amber);}
+.util-tile .ut-fill.red{background:var(--red);}
+.util-tile .ut-fill.redhot{background:var(--c-redhot);}
+.util-tile .ut-meta{font-size:8px;letter-spacing:.8px;color:var(--dim);margin-top:6px;text-transform:uppercase;}
+.ceil-label{color:var(--dim);letter-spacing:2px;text-transform:uppercase;font-size:8px;}
+.ceil-item{display:inline-flex;align-items:baseline;gap:6px;}
+.ceil-item .name{font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;}
+.ceil-item .val{font-family:var(--disp);font-size:14px;color:var(--bright);letter-spacing:1px;}
+.ceil-item .unit{font-size:9px;color:var(--dim);}
+.ceil-divider{width:1px;height:14px;background:var(--border);}
+
+/* HEAT MAP */
+.hm-card{background:var(--panel);border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.hm-scroll{overflow:auto;max-height:75vh;}
+.hm-table{border-collapse:collapse;font-family:var(--mono);font-size:11px;}
+.hm-table th,.hm-table td{padding:0;border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+  white-space:nowrap;vertical-align:middle;}
+.hm-table th.weekstart,.hm-table td.weekstart{border-left:2px solid var(--week-line);}
+
+.hm-table thead th{background:var(--steel);position:sticky;top:0;z-index:50;font-weight:400;}
+.hm-table thead th.col-job{position:sticky;left:0;z-index:60;background:var(--steel);
+  text-align:left;padding:8px 14px;border-right:2px solid var(--border-hi);min-width:260px;}
+.hm-table thead th.col-cap{position:sticky;left:260px;z-index:60;background:var(--steel);
+  text-align:right;padding:8px 14px;border-right:2px solid var(--border-hi);min-width:80px;}
+.hm-table thead th .hcol{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:7px 4px;min-width:46px;}
+.hm-table thead th .dow{font-size:8px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;}
+.hm-table thead th .day{font-family:var(--disp);font-size:14px;color:var(--bright);line-height:1;margin-top:2px;}
+.hm-table thead th .mo{font-size:8px;color:var(--dim);margin-top:1px;letter-spacing:1px;text-transform:uppercase;}
+.hm-table thead th.weekend .day{color:var(--dim);}
+.hm-table thead th.today{background:#1a2038;}
+.hm-table thead th.today .day{color:var(--amber);}
+
+.hm-table td.col-job{position:sticky;left:0;z-index:30;background:var(--panel);
+  text-align:left;padding:9px 14px;border-right:2px solid var(--border-hi);min-width:260px;}
+.hm-table td.col-cap{position:sticky;left:260px;z-index:30;background:var(--panel);
+  text-align:right;padding:9px 14px;border-right:2px solid var(--border-hi);min-width:80px;
+  font-family:var(--disp);font-size:13px;color:var(--amber);letter-spacing:1px;}
+.hm-table tr.proj > td{background:var(--panel);}
+.hm-table tr.proj:hover > td{background:#1e2840;}
+.hm-table tr.proj:hover > td.col-job{background:#1e2840;}
+.hm-table tr.rt-sub > td{background:#101422;}
+.hm-table tr.rt-sub > td.col-job{background:#101422;padding-left:32px;}
+.hm-table tr.rt-sub > td.col-cap{background:#101422;}
+
+.proj-line{display:flex;align-items:center;gap:8px;cursor:pointer;}
+.proj-toggle{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;
+  border:1px solid var(--border-hi);color:var(--dim);font-size:10px;border-radius:2px;}
+.proj-toggle.open{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+.proj-num{color:var(--dim);font-size:9px;letter-spacing:1px;}
+.proj-name{color:var(--bright);font-size:11px;font-weight:500;}
+.proj-meta{font-size:9px;color:var(--dim);margin-top:2px;letter-spacing:.5px;}
+.rt-name{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;}
+.rt-dept{font-size:8px;letter-spacing:1.5px;color:var(--dim);margin-left:8px;text-transform:uppercase;}
+.rt-color{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+/* Cells */
+.hm-table td.cell{text-align:center;font-family:var(--mono);font-size:11px;font-weight:500;
+  height:32px;min-width:46px;cursor:default;transition:filter .1s;color:var(--dim);}
+.hm-table td.cell.weekend{background:#080b14;color:var(--dim);}
+.hm-table td.cell.empty{background:var(--c-empty);color:transparent;}
+.hm-table td.cell.green{background:var(--c-green);color:var(--c-green-text);}
+.hm-table td.cell.amber{background:var(--c-amber);color:var(--c-amber-text);}
+.hm-table td.cell.red{background:var(--c-red);color:var(--c-red-text);font-weight:600;}
+.hm-table td.cell.redhot{background:var(--c-redhot);color:var(--c-redhot-text);font-weight:700;}
+.hm-table td.cell.install{background:var(--c-install);color:var(--c-install-text);font-weight:600;}
+.hm-table td.cell.today{outline:1px solid var(--amber);outline-offset:-1px;z-index:1;position:relative;}
+.hm-table td.cell:hover{filter:brightness(1.25);outline:1px solid var(--bright);outline-offset:-1px;
+  position:relative;z-index:2;}
+
+.hm-table tr.total > td{background:var(--steel);border-top:2px solid var(--amber-lo);}
+.hm-table tr.total > td.col-job{background:var(--steel);font-family:var(--disp);font-size:13px;
+  letter-spacing:3px;color:var(--amber);text-transform:uppercase;padding:11px 14px;}
+.hm-table tr.total > td.col-cap{background:var(--steel);font-size:11px;color:var(--dim);}
+.hm-table tr.total td.cell{font-family:var(--disp);font-size:13px;font-weight:400;letter-spacing:.5px;height:36px;}
+
+.hm-table tr.section-break > td{background:var(--steel);padding:11px 14px 10px;
+  border-top:3px solid var(--amber-lo);border-bottom:1px solid var(--amber-lo);
+  font-family:var(--disp);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--amber);}
+.hm-table tr.section-break > td.col-job{position:sticky;left:0;z-index:30;background:var(--steel);}
+
+.hm-table tr.dept-total > td{background:var(--panel2);border-top:1px solid #2e3860;
+  box-shadow:inset 1px 0 0 var(--border-hi);}
+.hm-table tr.dept-total > td.col-job{background:var(--panel2);padding:11px 14px 11px 11px;
+  border-left:3px solid var(--amber);}
+.hm-table tr.dept-total > td.col-cap{background:var(--panel2);font-family:var(--disp);font-size:13px;
+  color:var(--text);letter-spacing:1px;text-align:right;}
+.hm-table tr.dept-total .rt-name{font-size:11px;font-weight:600;color:var(--bright);}
+.hm-table tr.dept-total .dept-tag{display:inline-block;margin-left:8px;padding:1px 6px;
+  background:var(--amber-dim);color:var(--amber);font-size:8px;letter-spacing:1.5px;
+  font-weight:700;border-radius:2px;border:1px solid var(--amber-lo);vertical-align:middle;}
+.hm-table tr.dept-total td.cell{font-family:var(--disp);font-size:13px;letter-spacing:.5px;height:36px;
+  font-weight:400;}
+
+.hm-table tr.overhire > td{background:#160408;border-top:2px solid var(--red-lo);}
+.hm-table tr.overhire > td.col-job{background:#160408;font-family:var(--disp);font-size:13px;
+  letter-spacing:3px;text-transform:uppercase;color:var(--red);padding:12px 14px;
+  border-left:3px solid var(--red);}
+.hm-table tr.overhire > td.col-job .sub{display:block;font-family:var(--mono);font-size:9px;
+  letter-spacing:1.5px;color:var(--dim);text-transform:none;margin-top:2px;font-weight:400;}
+.hm-table tr.overhire > td.col-cap{background:#160408;font-family:var(--disp);font-size:13px;
+  color:var(--text);letter-spacing:1px;text-align:right;}
+.hm-table tr.overhire > td.col-cap .sub{display:block;font-family:var(--mono);font-size:9px;
+  letter-spacing:1px;color:var(--dim);margin-top:1px;}
+.hm-table tr.overhire td.cell{font-family:var(--disp);font-size:14px;letter-spacing:.5px;height:38px;
+  font-weight:400;color:var(--dim);background:#100306;}
+.hm-table tr.overhire td.cell.deficit{background:var(--c-redhot);color:#fff;font-weight:700;}
+.hm-table tr.overhire td.cell.weekend{background:#0a0210;color:var(--dim);}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;align-items:center;font-size:9px;color:var(--dim);
+  letter-spacing:1.5px;text-transform:uppercase;flex-wrap:wrap;}
+.legend-item{display:inline-flex;align-items:center;gap:5px;}
+.swatch{width:14px;height:14px;border-radius:2px;border:1px solid rgba(255,255,255,.04);}
+
+/* JOB STATUS TABLE */
+.jobs-table{width:100%;background:var(--panel);border:1px solid var(--border);
+  border-radius:3px;border-collapse:collapse;}
+.jobs-table th{background:var(--steel);text-align:left;padding:10px 14px;
+  font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:400;
+  border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.jobs-table th:hover{color:var(--text);}
+.jobs-table th.num,.jobs-table td.num{text-align:right;font-family:var(--mono);}
+.jobs-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:11px;}
+.jobs-table tr:last-child td{border-bottom:none;}
+.jobs-table tbody tr{transition:background .1s;}
+.jobs-table tbody tr:hover td{background:#1e2840;}
+.jobs-table .pname{color:var(--bright);font-weight:500;}
+.jobs-table .pclient{color:var(--dim);font-size:9px;margin-top:1px;}
+.jobs-table .pnum{color:var(--dim);font-size:10px;letter-spacing:1px;}
+.jobs-table .h-active{color:var(--amber);font-family:var(--disp);font-size:14px;letter-spacing:1px;}
+.jobs-table .h-pending{color:var(--blue);font-family:var(--disp);font-size:14px;letter-spacing:1px;}
+.jobs-table .h-excluded{color:var(--dim);font-family:var(--mono);font-size:11px;}
+.status-pill{display:inline-block;padding:2px 7px;border-radius:2px;font-size:9px;letter-spacing:1px;}
+.sp-default{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-lo);}
+.sp-won{background:var(--green-dim);color:var(--green);border:1px solid var(--green-lo);}
+.sp-prod{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-lo);}
+.sp-install{background:rgba(224,112,0,.15);color:var(--orange);border:1px solid var(--orange-lo);}
+.sp-bidding{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(136,104,204,.3);}
+.sp-hold{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--border);}
+
+/* WO LIST */
+.wo-filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.filter-select{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:2px;cursor:pointer;outline:none;}
+.filter-select:hover{border-color:var(--border-hi);}
+.filter-label{font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+.filter-search{background:var(--panel2);border:1px solid var(--border);color:var(--bright);
+  font-family:var(--mono);font-size:10px;padding:6px 10px;border-radius:2px;outline:none;min-width:200px;}
+.filter-search:focus{border-color:var(--amber);}
+.wo-table{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:3px;
+  border-collapse:collapse;font-size:11px;}
+.wo-table th{background:var(--steel);text-align:left;padding:9px 12px;
+  font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:400;
+  border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+.wo-table th:hover{color:var(--text);}
+.wo-table th.num,.wo-table td.num{text-align:right;}
+.wo-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.wo-table tbody tr.bucket-active td{}
+.wo-table tbody tr.bucket-pending td{background:rgba(255,255,255,.015);}
+.wo-table tbody tr.bucket-excluded td{background:transparent;color:var(--dim);opacity:.5;}
+.wo-table tbody tr:hover td{background:#1e2840;}
+.wo-id{color:var(--dim);font-size:9px;letter-spacing:.5px;}
+.wo-name{color:var(--bright);font-size:11px;font-weight:500;}
+.wo-rt-tag{display:inline-block;padding:1px 6px;border-radius:2px;font-size:8px;letter-spacing:1px;
+  text-transform:uppercase;border:1px solid;}
+.wo-bucket-tag{display:inline-block;padding:1px 7px;border-radius:2px;font-size:8px;letter-spacing:1px;
+  text-transform:uppercase;}
+.wo-bucket-active{background:var(--green-dim);color:var(--green);border:1px solid var(--green-lo);}
+.wo-bucket-pending{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-lo);}
+.wo-bucket-excluded{background:rgba(255,255,255,.03);color:var(--dim);border:1px solid var(--border);}
+
+/* EMPTY STATE */
+.empty-state{padding:60px 26px;text-align:center;}
+.empty-state h2{font-family:var(--disp);font-size:24px;letter-spacing:4px;color:var(--bright);margin-bottom:12px;}
+.empty-state p{font-size:11px;color:var(--dim);max-width:560px;margin:0 auto 18px;line-height:1.7;letter-spacing:.5px;}
+.empty-state button{background:var(--amber);color:var(--black);border:none;padding:11px 22px;
+  font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:700;
+  border-radius:2px;cursor:pointer;transition:opacity .12s;}
+.empty-state button:hover{opacity:.85;}
+
+/* TOOLTIP */
+#tip{position:fixed;background:var(--panel2);border:1px solid var(--border-hi);border-radius:3px;
+  padding:11px 14px;box-shadow:0 12px 32px rgba(0,0,0,.7);pointer-events:none;max-width:380px;z-index:300;
+  font-size:11px;display:none;}
+#tip h4{font-family:var(--disp);font-size:13px;color:var(--bright);letter-spacing:2px;
+  margin:0 0 4px;text-transform:uppercase;}
+#tip .tip-meta{color:var(--dim);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px;}
+#tip .tip-stat{display:flex;justify-content:space-between;padding:3px 0;font-size:10px;}
+#tip .tip-stat .lab{color:var(--dim);letter-spacing:1px;text-transform:uppercase;font-size:9px;}
+#tip .tip-stat .val{color:var(--bright);font-family:var(--disp);font-size:12px;letter-spacing:1px;}
+#tip .tip-stat .val.red{color:var(--red);}
+#tip .tip-stat .val.amber{color:var(--amber);}
+#tip .tip-stat .val.green{color:var(--green);}
+#tip .tip-divider{height:1px;background:var(--border);margin:9px 0;}
+#tip ul{list-style:none;margin:0;padding:0;}
+#tip li{display:flex;justify-content:space-between;padding:3px 0;font-size:10px;color:var(--text);
+  border-top:1px solid var(--border);gap:10px;}
+#tip li:first-child{border-top:none;}
+#tip li .id{color:var(--dim);font-size:9px;margin-right:6px;}
+#tip li .nm{color:var(--bright);}
+#tip li .hr{color:var(--amber);font-family:var(--disp);font-size:11px;letter-spacing:1px;white-space:nowrap;}
+
+/* MODAL */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;z-index:400;}
+#modal.show{display:flex;}
+.modal-card{background:var(--panel);border:1px solid var(--border-hi);border-radius:3px;padding:22px 26px;max-width:520px;width:92%;}
+.modal-card h3{font-family:var(--disp);font-size:18px;letter-spacing:3px;color:var(--bright);margin-bottom:6px;}
+.modal-card p{color:var(--dim);font-size:11px;margin-bottom:14px;line-height:1.55;}
+.modal-card p a{color:var(--amber);text-decoration:none;}
+.modal-card p code{color:var(--text);background:var(--steel);padding:1px 5px;border-radius:2px;font-size:10px;}
+.modal-card input{width:100%;padding:9px 11px;background:var(--black);color:var(--bright);
+  border:1px solid var(--border-hi);border-radius:2px;font-family:var(--mono);font-size:10px;}
+.modal-card input:focus{outline:none;border-color:var(--amber);}
+.modal-status{font-size:10px;color:var(--dim);margin-top:8px;letter-spacing:1px;min-height:14px;}
+.modal-status.err{color:var(--red);}
+.modal-buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.modal-buttons button{padding:8px 14px;border-radius:2px;border:1px solid var(--border-hi);background:transparent;
+  color:var(--text);cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;font-weight:500;transition:all .12s;}
+.modal-buttons button:hover{border-color:var(--amber);color:var(--amber);}
+.modal-buttons button.primary{background:var(--amber);color:var(--black);border-color:var(--amber);font-weight:700;}
+.modal-buttons button.primary:hover{opacity:.85;color:var(--black);border-color:var(--amber);}
+
+/* DRILL-DOWN MODAL */
+#drill-modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:420;}
+#drill-modal.show{display:flex;}
+.drill-card{background:var(--panel);border:1px solid var(--border-hi);border-radius:3px;
+  width:92%;max-width:740px;max-height:84vh;display:flex;flex-direction:column;}
+.drill-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  padding:18px 22px 14px;border-bottom:1px solid var(--border);}
+.drill-header h3{font-family:var(--disp);font-size:18px;letter-spacing:2.5px;color:var(--bright);line-height:1.1;}
+.drill-sub{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:4px;}
+.drill-close{background:transparent;border:1px solid var(--border-hi);color:var(--dim);cursor:pointer;
+  width:26px;height:26px;border-radius:2px;font-size:13px;flex-shrink:0;transition:all .12s;}
+.drill-close:hover{border-color:var(--red);color:var(--red);}
+.drill-stats{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--steel);}
+.drill-stat{flex:1;padding:10px 18px;border-right:1px solid var(--border);}
+.drill-stat:last-child{border-right:none;}
+.drill-stat .lab{display:block;font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:3px;}
+.drill-stat .val{font-family:var(--disp);font-size:20px;color:var(--bright);letter-spacing:1px;}
+.drill-stat .val.red{color:var(--red);}
+.drill-stat .val.amber{color:var(--amber);}
+.drill-stat .val.green{color:var(--green);}
+.drill-body{overflow-y:auto;padding:4px 0;}
+.drill-table{width:100%;border-collapse:collapse;font-size:11px;}
+.drill-table th{position:sticky;top:0;background:var(--steel);text-align:left;padding:8px 14px;
+  font-size:8px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;font-weight:400;
+  border-bottom:1px solid var(--border);}
+.drill-table th.r{text-align:right;}
+.drill-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.drill-table tr:last-child td{border-bottom:none;}
+.drill-table tbody tr:hover td{background:#1e2840;}
+.drill-table .d-id{color:var(--dim);font-size:9px;letter-spacing:.5px;white-space:nowrap;}
+.drill-table .d-name{color:var(--bright);font-weight:500;}
+.drill-table .d-rt{font-size:9px;letter-spacing:.5px;text-transform:uppercase;}
+.drill-table .d-status{font-size:9px;color:var(--text);}
+.drill-table .d-pct{text-align:right;color:var(--amber);font-family:var(--disp);font-size:12px;letter-spacing:1px;}
+.drill-table .d-hrs{text-align:right;color:var(--bright);font-family:var(--disp);font-size:13px;letter-spacing:1px;white-space:nowrap;}
+.drill-empty{padding:30px;text-align:center;color:var(--dim);font-size:11px;}
+
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:#485070;}
+
+.ftr{padding:13px 26px;border-top:1px solid var(--border);background:var(--steel);
+  display:flex;justify-content:space-between;align-items:center;font-size:9px;color:var(--dim);letter-spacing:1px;gap:12px;flex-wrap:wrap;}
+.ftr a{color:var(--text);text-decoration:none;}
+.ftr a:hover{color:var(--amber);}
+
+.view-pane{display:none;}
+.view-pane.on{display:block;}
+
+.issue-row{display:flex;align-items:flex-start;gap:12px;padding:6px 0;border-top:1px solid var(--border);}
+.issue-row:first-child{border-top:none;}
+.issue-row .iid{color:var(--dim);font-size:9px;letter-spacing:.5px;min-width:140px;}
+.issue-row .iname{color:var(--bright);flex:1;}
+.issue-row .iflag{color:var(--red);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;}
+.issue-row .iproj{color:var(--amber);font-size:9px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">
+    <span class="logo">TFNYC</span>
+    <span class="logo-sub">Production · Live</span>
+  </div>
+
+  <div class="view-tabs">
+    <button class="on" data-view="heatmap">Heat Map</button>
+    <button data-view="jobs">Jobs</button>
+    <button data-view="wos">Work Orders</button>
+  </div>
+
+  <div class="hdr-right">
+    <div class="fetch-stamp">
+      <span class="lab">Last Fetched</span>
+      <span class="val empty" id="fetch-stamp">— never —</span>
+    </div>
+    <button class="refresh-btn" id="refresh-btn" onclick="doRefresh()">↻ Refresh</button>
+    <button class="pat-btn" id="pat-btn" onclick="openPatModal()">PAT</button>
+  </div>
+</header>
+
+<div class="kpi-row" id="kpis"></div>
+
+<div class="main">
+
+  <!-- HEAT MAP VIEW -->
+  <div class="view-pane on" id="view-heatmap">
+
+    <div>
+      <div class="sec">
+        <span class="sec-t">Per-Day Capacity Ceilings</span>
+        <span class="sec-c" id="ceil-count">— depts</span>
+        <div class="sec-l"></div>
+      </div>
+      <div class="ceil-bar" id="ceil-bar"></div>
+    </div>
+
+    <div style="margin-top:18px;">
+      <div class="sec">
+        <span class="sec-t">Department Utilization</span>
+        <span class="sec-c" id="util-window">4 wk</span>
+        <div class="sec-l"></div>
+      </div>
+      <div class="util-grid" id="util-grid"></div>
+    </div>
+
+    <div style="margin-top:18px;">
+      <div class="sec">
+        <span class="sec-t">Build Load — Job · Day</span>
+        <span class="sec-c" id="window-tag">4 wk</span>
+        <div class="sec-l"></div>
+        <div class="sec-ctrls">
+          <button class="nav-btn" onclick="navigate(-1)">◀ Prev</button>
+          <button class="nav-btn" onclick="navigate('today')">Today</button>
+          <button class="nav-btn" onclick="navigate(1)">Next ▶</button>
+          <div class="toggle" id="detail-toggle" title="Routings collapsed into 7 groups · toggle for full detail">
+            <button class="on" data-detail="group">Groups</button>
+            <button data-detail="routing">Routings</button>
+          </div>
+          <div class="toggle" id="range-toggle">
+            <button data-days="14">2 wk</button>
+            <button class="on" data-days="28">4 wk</button>
+            <button data-days="56">8 wk</button>
+            <button data-days="91">13 wk</button>
+          </div>
+        </div>
+      </div>
+      <div class="legend" style="margin-bottom:10px;">
+        <span class="legend-item"><span class="swatch" style="background:var(--c-green);"></span>≤ 80%</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--c-amber);"></span>80–100%</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--c-red);"></span>100–150%</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--c-redhot);"></span>&gt; 150%</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--c-install);"></span>Install / Strike</span>
+        <span class="legend-item"><span class="swatch" style="background:var(--c-empty);border:1px solid var(--border);"></span>Idle</span>
+        <span class="legend-item" style="margin-left:auto;color:var(--dim);">Click project row to expand · Excluded WOs from Cancelled/Complete projects are hidden here</span>
+      </div>
+      <div id="hm-empty" class="empty-state" style="display:none;">
+        <h2>No Data Loaded</h2>
+        <p>Click <strong>Refresh</strong> above to pull the latest Work Orders, Departments, and Routings from Airtable. You'll need a personal access token with <code>data.records:read</code> on base <code>appKKB4SwDK9cDcSc</code>.</p>
+        <button onclick="openPatModal()">Set Token & Load</button>
+      </div>
+      <div class="hm-card" id="hm-card">
+        <div class="hm-scroll">
+          <table class="hm-table" id="hm"></table>
+        </div>
+      </div>
+      <div id="data-issues-panel" style="margin-top:14px;display:none;">
+        <div class="sec" id="issues-header" style="cursor:pointer;user-select:none;" title="Click to expand / collapse">
+          <span class="issues-caret" id="issues-caret" style="display:inline-block;width:10px;color:var(--red);font-family:var(--mono);font-size:11px;">▶</span>
+          <span class="sec-t" style="color:var(--red);">Data Issues</span>
+          <span class="sec-c" id="issues-count" style="color:var(--red);border-color:var(--red-lo);">0</span>
+          <div class="sec-l"></div>
+        </div>
+        <div id="issues-body" style="display:none;background:var(--panel);border:1px solid var(--red-lo);border-left:3px solid var(--red);border-radius:3px;padding:12px 16px;font-size:11px;line-height:1.6;margin-top:8px;">
+          <div style="color:var(--dim);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Active/Pending WOs with missing dates, zero hours, or other gaps — fix in Airtable to clean up the heat map</div>
+          <ul id="issues-list" style="list-style:none;margin:0;padding:0;"></ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JOBS VIEW -->
+  <div class="view-pane" id="view-jobs">
+    <div class="sec">
+      <span class="sec-t">Active Projects</span>
+      <span class="sec-c" id="jobs-count">— jobs</span>
+      <div class="sec-l"></div>
+    </div>
+    <table class="jobs-table" id="jobs-table">
+      <thead>
+        <tr>
+          <th data-sort="num">#</th>
+          <th data-sort="name">Project</th>
+          <th data-sort="status">Status</th>
+          <th data-sort="installDate">Install</th>
+          <th class="num" data-sort="hActive">Active Hrs</th>
+          <th class="num" data-sort="hPending">Pending Hrs</th>
+          <th class="num" data-sort="hExcluded">Excluded</th>
+          <th class="num" data-sort="woCount">WOs</th>
+        </tr>
+      </thead>
+      <tbody id="jobs-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- WO LIST VIEW -->
+  <div class="view-pane" id="view-wos">
+    <div class="sec">
+      <span class="sec-t">All Work Orders</span>
+      <span class="sec-c" id="wos-count">— records</span>
+      <div class="sec-l"></div>
+    </div>
+    <div class="wo-filters">
+      <span class="filter-label">Search</span>
+      <input type="text" class="filter-search" id="wo-search" placeholder="name, ID, project…" oninput="renderWOs()">
+      <span class="filter-label">Project</span>
+      <select class="filter-select" id="wo-f-proj" onchange="renderWOs()"><option value="all">All</option></select>
+      <span class="filter-label">Dept</span>
+      <select class="filter-select" id="wo-f-dept" onchange="renderWOs()"><option value="all">All</option></select>
+      <span class="filter-label">Routing</span>
+      <select class="filter-select" id="wo-f-rt" onchange="renderWOs()"><option value="all">All</option></select>
+      <span class="filter-label">Bucket</span>
+      <select class="filter-select" id="wo-f-bucket" onchange="renderWOs()">
+        <option value="all">All</option>
+        <option value="Active">Active</option>
+        <option value="Pending">Pending</option>
+        <option value="Excluded">Excluded</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="wo-table" id="wo-table">
+        <thead>
+          <tr>
+            <th data-sort="id">WO ID</th>
+            <th data-sort="project">Project</th>
+            <th data-sort="name">Name</th>
+            <th data-sort="routing">Routing</th>
+            <th data-sort="dept">Dept</th>
+            <th data-sort="status">Status</th>
+            <th data-sort="bucket">Bucket</th>
+            <th data-sort="start">Start</th>
+            <th data-sort="end">End</th>
+            <th class="num" data-sort="hours">Est Hrs</th>
+            <th class="num" data-sort="pct">%</th>
+          </tr>
+        </thead>
+        <tbody id="wo-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div id="tip"></div>
+
+<div id="modal">
+  <div class="modal-card">
+    <h3>Airtable Personal Access Token</h3>
+    <p>Paste a token with <code>data.records:read</code> on base <code>appKKB4SwDK9cDcSc</code>. Stored only in this browser's localStorage. Get one at <a href="https://airtable.com/create/tokens" target="_blank">airtable.com/create/tokens</a>.</p>
+    <input type="password" id="pat-input" placeholder="patXXXXXXXXXXXX.xxxxxxxx…" autocomplete="off">
+    <div class="modal-status" id="modal-status"></div>
+    <div class="modal-buttons">
+      <button onclick="clearAllAndReset()" title="Wipe stored PAT and cached data">Clear all</button>
+      <button onclick="closePatModal()">Cancel</button>
+      <button class="primary" onclick="savePatAndFetch()">Save & Pull</button>
+    </div>
+  </div>
+</div>
+
+<div id="drill-modal">
+  <div class="drill-card">
+    <div class="drill-header">
+      <div>
+        <h3 id="drill-title">—</h3>
+        <div class="drill-sub" id="drill-sub">—</div>
+      </div>
+      <button class="drill-close" onclick="closeDrill()" title="Close (Esc)">✕</button>
+    </div>
+    <div class="drill-stats" id="drill-stats"></div>
+    <div class="drill-body">
+      <table class="drill-table">
+        <thead>
+          <tr>
+            <th>WO ID</th>
+            <th>Name</th>
+            <th>Routing</th>
+            <th>Status</th>
+            <th class="r">%</th>
+            <th class="r">Hrs / day</th>
+          </tr>
+        </thead>
+        <tbody id="drill-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer class="ftr">
+  <div>
+    Hours allocated pro-rata across working days in each WO's planned window · per-day ceiling = weekly capacity ÷ 5 · install/strike routings shown in orange · Excluded WOs (per Capacity Bucket formula) suppressed from heat map
+  </div>
+  <div>
+    Base <a href="https://airtable.com/appKKB4SwDK9cDcSc" target="_blank">appKKB4SwDK9cDcSc</a> · TFNYC Production v1
+  </div>
+</footer>
+
+<script>
+// ===========================================================================
+// CONFIG
+// ===========================================================================
+const BASE_ID = 'appKKB4SwDK9cDcSc';
+
+const TABLES = {
+  departments: 'tblx8BbuImfuF3eOJ',
+  projects:    'tblpSLCZilFzlSv0w',
+  workOrders:  'tblFOMNRbxMxetw8T'
+};
+
+const FIELDS = {
+  // Departments
+  deptName:     'fldmVyBXEI04gvtWl',
+  deptCode:     'fld8T9LEAN9a4ZlPn',
+  deptStatus:   'fld5I5ipbc0OQkfa0',
+  deptCap:      'fldt5Klfb7wWUrAvA',  // Total Available Hrs/Week
+
+  // Projects
+  projNumber:   'fldrUdVZGGFUW2tUo',
+  projName:     'fld8Uw3UJQDplwrWp',
+  projShopName: 'flds7hdo8itUDJTRK',
+  projStatus:   'fldWrjffAtDnv6FUw',
+  projInstall:  'fldatNKvhLHYkyv0n',
+  projClient:   'fldLBtcJeAUBMdIzy',
+
+  // Work Orders
+  woId:         'fldIHGuy75hmDmF6I',
+  woName:       'fldcc4t2UyWHpfIMI',
+  woShopName:   'fldcpVgLbfJ5cDiZP',
+  woProject:    'fldIszyt7JZAKjKov',
+  woDept:       'fldbOt9dNVPJqcEGL',
+  woRouting:    'fldLzpKe0IyjKsdst',
+  woStart:      'fldewYFuW9XXo580K',
+  woEnd:        'fldvHTnai6x3yKwK2',
+  woHours:      'fldaXZFMs9RWztyXy',
+  woStatus:     'fldTs0AtwwOJNMpwC',
+  woPctLead:    'fldZ1wjtQAcYdiu3R',
+  woBucket:     'fld8HTRA6fMmrkTbT',  // Active / Pending / Excluded
+  woProjStatus: 'fldVx9ucaDvxJihmF'
+};
+
+// Routings that count as install/strike/load — colored orange regardless of dept ceiling
+const INSTALL_ROUTINGS = new Set([
+  'Local Install', 'Local Strike',
+  'Out-of-Area Install', 'Out-of-Area Strike',
+  'Pack-Load', 'Site Visit', 'Trucking'
+]);
+
+// Departments excluded from production overhire calc (salaried / non-trade)
+const NO_OVERHIRE_DEPTS = new Set(['PM', 'EST', 'EXEC', 'ACC']);
+
+// Routing groups — collapse 28 routings into 7 logical buckets for the heat map.
+// Detail toggle in the controls switches between group and individual routing view.
+const ROUTING_TO_GROUP = {
+  'Drafting': 'DESIGN',
+  'CNC': 'DIGIFAB', 'Laser': 'DIGIFAB', '3D Print': 'DIGIFAB',
+  'Carpentry': 'BUILD', 'Metalwork': 'BUILD', 'Finishing': 'BUILD', 'Assembly': 'BUILD', 'Tech-Up': 'BUILD',
+  'Lighting': 'LAVM', 'AV': 'LAVM', 'Motion': 'LAVM',
+  'Local Install': 'INSTALL', 'Local Strike': 'INSTALL',
+  'Out-of-Area Install': 'INSTALL', 'Out-of-Area Strike': 'INSTALL',
+  'Pack-Load': 'INSTALL', 'Trucking': 'INSTALL', 'Site Visit': 'INSTALL',
+  'PM Time': 'PM',
+  'Plan Approval': 'PM', 'Kickoff': 'PM', 'Page-Turn': 'PM',
+  'Handoff': 'PM', 'Closeout': 'PM',
+  'Project Samples': 'OTHER', 'Other': 'OTHER'
+};
+const GROUP_META = {
+  DESIGN:  { label: 'Design',          deptCode: 'DRAFT', color: '#3a9edc' },
+  DIGIFAB: { label: 'DigiFab',         deptCode: 'DIGI',  color: '#a059e0' },
+  BUILD:   { label: 'Build · floor',   deptCode: 'FLOOR', color: '#F5C400' },
+  LAVM:    { label: 'LAVM',            deptCode: 'LAVM',  color: '#c69640' },
+  INSTALL: { label: 'Install / Strike',deptCode: 'FLOOR', color: '#E07000' },
+  PM:      { label: 'PM',              deptCode: 'PM',    color: '#7a96cc' },
+  OTHER:   { label: 'Other / Misc',    deptCode: null,    color: '#9098a8' }
+};
+const GROUP_ORDER = ['DESIGN','DIGIFAB','BUILD','LAVM','INSTALL','PM','OTHER'];
+function routingToGroup(rt) { return ROUTING_TO_GROUP[rt] || 'OTHER'; }
+
+// Routing color map — used in WO List view only
+const ROUTING_COLORS = {
+  'Drafting':       '#3a9edc',
+  'CNC':            '#a059e0',
+  'Laser':          '#b075e8',
+  '3D Print':       '#c690e8',
+  'Carpentry':      '#E07000',
+  'Metalwork':      '#888888',
+  'Finishing':      '#F5C400',
+  'Assembly':       '#4d9de0',
+  'Tech-Up':        '#CC2200',
+  'Lighting':       '#c69640',
+  'AV':             '#28b0a8',
+  'Motion':         '#dc7a8a',
+  'Project Samples':'#e8a0d8',
+  'Local Install':  '#1f9d55',
+  'Local Strike':   '#7ed8a8',
+  'Out-of-Area Install': '#a5d8b8',
+  'Out-of-Area Strike':  '#7ec8b0',
+  'Pack-Load':      '#e89060',
+  'Trucking':       '#d4c060',
+  'Site Visit':     '#80c8e0',
+  'PM Time':        '#7a96cc',
+  'Plan Approval':  '#80b8d8',
+  'Kickoff':        '#80c8b8',
+  'Page-Turn':      '#d8c878',
+  'Closeout':       '#e8a878',
+  'Handoff':        '#8098c8',
+  'Other':          '#9098a8'
+};
+
+// ===========================================================================
+// EMBEDDED SNAPSHOT — pulled live from Airtable on 2026-05-15
+// Project identities masked (client names -> job codes) for public hosting.
+// Live Refresh with a PAT pulls real names into the viewer's own browser.
+// ===========================================================================
+const SNAPSHOT = {
+  fetchedAt: '2026-05-15T12:00:00Z',
+  isSnapshot: true,
+  departments: [{"recordId":"recaxqS4yuYgtWhxh","code":"FLOOR","name":"General Floor","weeklyCapacity":300},{"recordId":"rec3LyxEU77OGMSY6","code":"PM","name":"Project Management","weeklyCapacity":200},{"recordId":"recQBqNo4opGtI0Cr","code":"ACC","name":"Accounts","weeklyCapacity":120},{"recordId":"recMr5qdn8aogKPSV","code":"DRAFT","name":"Drafting","weeklyCapacity":110},{"recordId":"recc73Lyq4gby7G55","code":"EXEC","name":"Executive","weeklyCapacity":100},{"recordId":"rec7Cx4D3i5tXcMR9","code":"DIGI","name":"DigiFab","weeklyCapacity":80},{"recordId":"recdAJlKfDYownlYV","code":"FAC","name":"Facilities","weeklyCapacity":80},{"recordId":"recZuVsVyNSkR1Y5R","code":"EST","name":"Estimation","weeklyCapacity":40},{"recordId":"recXXCutxNelFPQBX","code":"LAVM","name":"LAVM","weeklyCapacity":40}],
+  projects: [{"recordId":"recuVLsifWQbbQo5z","code":"TF-6783","name":"Job 6783","shopName":"Job 6783","client":"","status":"In Production","installDate":"2026-06-10"},{"recordId":"rechieIpXoizI258S","code":"TF-6901","name":"Job 6901","shopName":"Job 6901","client":"","status":"In Production","installDate":"2026-05-21"},{"recordId":"recsdyQjjvf0E1hHc","code":"TF-6857","name":"Job 6857","shopName":"Job 6857","client":"","status":"Pre-Production","installDate":"2026-05-20"},{"recordId":"recSTdZ1Sq8i1YHJX","code":"TF-6780","name":"Job 6780","shopName":"Job 6780","client":"","status":"Complete","installDate":"2026-04-19"},{"recordId":"recDYMlGXPDEQsKsi","code":"TF-2606","name":"Job 2606","shopName":"Job 2606","client":"","status":"Cancelled","installDate":"2026-05-26"},{"recordId":"recz8ajs6G1Dh3zL3","code":"TF-2605","name":"Job 2605","shopName":"Job 2605","client":"","status":"Cancelled","installDate":"2026-06-15"}],
+  workOrders: [{"recordId":"rec07ojwHGl2O2T1C","id":"TF-6783-WO-116","name":"Miami Strike (Temple House)","shopName":"MIA Strike","project":"TF-6783","deptCode":"PM","routing":"Out-of-Area Strike","status":"Pending","bucket":"Pending","start":"2026-07-25","end":"2026-07-25","hours":0.5,"pctComplete":0},{"recordId":"rec0E8SmP1f5Q1z07","id":"TF-2605-WO-013","name":"Hero Tower vinyl wrap (TP8 prep)","shopName":"Hero vinyl","project":"TF-2605","deptCode":"FLOOR","routing":"Finishing","status":"Cancelled","bucket":"Excluded","start":"2026-04-16","end":"2026-04-19","hours":16,"pctComplete":0},{"recordId":"rec0FkWPGy4lxdup3","id":"TF-6780-WO-055","name":"VT-8 Finishing","shopName":"VT-8 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-14","hours":12,"pctComplete":0},{"recordId":"rec0MSK82kuKsMDpM","id":"TF-6857-WO-012","name":"Install Event \u2014 Pack-Load (kit pack + truck loading)","shopName":"Pack-Load (Install)","project":"TF-6857","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-05-29","hours":3,"pctComplete":0},{"recordId":"rec0UYiD9lnE9lLmi","id":"TF-6783-WO-088","name":"Studio Walls Finishing","shopName":"Studio Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-02","end":"2026-06-03","hours":20,"pctComplete":0},{"recordId":"rec0aAatYYYJJxPSe","id":"TF-6780-WO-043","name":"VT-6 Carpentry (with 5-sided bonnet)","shopName":"VT-6 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-10","hours":16,"pctComplete":0},{"recordId":"rec0p0uz2Fo83TWvH","id":"TF-6783-WO-154","name":"Sample: Ball Wall","shopName":"Sample Ball Wall","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-15","hours":6,"pctComplete":0},{"recordId":"rec12UGvOoNcl1bOP","id":"TF-6901-WO-017","name":"Strike Trucking \u2013 Activation 1","shopName":"Truck out Act 1","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":5,"pctComplete":0},{"recordId":"rec1VXaJxg0AVH47r","id":"TF-6780-WO-036","name":"VT-5 Drafting","shopName":"VT-5 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":1,"pctComplete":0},{"recordId":"rec1r2oU5MCknRIyz","id":"TF-6901-WO-008","name":"Lighting Integration \u2013 Base","shopName":"Base lighting","project":"TF-6901","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-19","hours":10,"pctComplete":0},{"recordId":"rec2HW0ry5ZLnIZgu","id":"TF-6783-WO-050","name":"Cloak Lockers CNC","shopName":"Cloak Lock CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-23","hours":4,"pctComplete":0},{"recordId":"rec2T8DdBYVml6gLZ","id":"TF-6783-WO-060","name":"Photo Booth Carpentry","shopName":"Photo Booth Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-31","hours":60,"pctComplete":0},{"recordId":"rec2l4Q5TtjhTWwR8","id":"TF-6780-WO-060","name":"VT-9 Finishing","shopName":"VT-9 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-14","hours":12,"pctComplete":0},{"recordId":"rec2n4QOWnHFE38rj","id":"TF-6783-WO-018","name":"Aux Desk Drafting","shopName":"Aux Desk Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-15","hours":4,"pctComplete":0},{"recordId":"rec2pvHKYMTrvse2f","id":"TF-6783-WO-109","name":"Disposal & Recycling","shopName":"Disposal","project":"TF-6783","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Pending","start":"2026-07-13","end":"2026-07-14","hours":12,"pctComplete":0},{"recordId":"rec2wDLh3vdyigMO8","id":"TF-6901-WO-018","name":"Install Labor \u2013 Activation 2","shopName":"Install Act 2","project":"TF-6901","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-07-07","end":"2026-07-07","hours":16,"pctComplete":0},{"recordId":"rec4efIz91QTGWjhW","id":"TF-6783-WO-027","name":"Column Shelf CNC","shopName":"Col Shelf CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-19","end":"2026-05-19","hours":3,"pctComplete":0},{"recordId":"rec4ikJTjrgZJ2Nga","id":"TF-6780-WO-045","name":"VT-6 Finishing","shopName":"VT-6 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-14","hours":16,"pctComplete":0},{"recordId":"rec5A8D0aNZnWMRxy","id":"TF-6783-WO-010","name":"Charm Desk CNC","shopName":"Charm Desk CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-06-02","end":"2026-06-02","hours":4,"pctComplete":0},{"recordId":"rec5BZca0xsC9EDIS","id":"TF-6780-WO-056","name":"VT-9 Drafting","shopName":"VT-9 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":1,"pctComplete":0},{"recordId":"rec5T432GRhdAAu9I","id":"TF-6780-WO-008","name":"PL-2 Carpentry","shopName":"PL-2 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-08","hours":25.5,"pctComplete":0},{"recordId":"rec5TYAwJlTdFjICr","id":"TF-6783-WO-035","name":"Corner Wall CNC","shopName":"Corner CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-20","hours":3,"pctComplete":0},{"recordId":"rec5UXmpuhP5EO83W","id":"TF-2605-WO-017","name":"Lighting truss LED rigging + DMX programming","shopName":"Truss LED+DMX","project":"TF-2605","deptCode":"LAVM","routing":"Lighting","status":"Cancelled","bucket":"Excluded","start":"2026-04-19","end":"2026-04-26","hours":24,"pctComplete":0},{"recordId":"rec5b388VmizHhEnl","id":"TF-6783-WO-026","name":"Column Shelf Drafting","shopName":"Col Shelf Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-18","hours":6,"pctComplete":0},{"recordId":"rec5xjEDTGMPsYoxr","id":"TF-6783-WO-131","name":"Page-Turn: Cloak Lockers","shopName":"PT Cloak Lockers","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-30","hours":0.5,"pctComplete":0},{"recordId":"rec6AalIZ8eghdoFq","id":"TF-6780-WO-042","name":"VT-6 CNC","shopName":"VT-6 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":2,"pctComplete":0},{"recordId":"rec6a6RRvkU2fWNJr","id":"TF-6857-WO-013","name":"Install Event \u2014 Trucking (driver to Central Park)","shopName":"Trucking (Install)","project":"TF-6857","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-05-31","end":"2026-05-31","hours":4,"pctComplete":0},{"recordId":"rec6soxOfjUdju9Jv","id":"TF-6780-WO-022","name":"PL-5 CNC","shopName":"PL-5 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":8,"pctComplete":0},{"recordId":"rec72sQN23u8d6XvQ","id":"TF-6901-WO-001","name":"Drafting \u2013 Coach Purse","shopName":"Purse dwgs","project":"TF-6901","deptCode":"DRAFT","routing":"Drafting","status":"QC","bucket":"Excluded","start":"2026-05-11","end":"2026-05-15","hours":16,"pctComplete":0.65},{"recordId":"rec775nZMAb8VHYbm","id":"TF-6901-WO-035","name":"Plan Approval (Gate 4)","shopName":"Plan Approval","project":"TF-6901","deptCode":"PM","routing":"Plan Approval","status":"Complete","bucket":"Excluded","start":null,"end":"2026-05-10","hours":4,"pctComplete":0},{"recordId":"rec7ZTeGz1ghDFDUd","id":"TF-6901-WO-004","name":"Frame Fabrication \u2013 Purse","shopName":"Purse frame","project":"TF-6901","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-20","hours":50,"pctComplete":0},{"recordId":"rec7d2KqfK9TQmgYg","id":"TF-6780-WO-007","name":"PL-2 CNC","shopName":"PL-2 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":8,"pctComplete":0},{"recordId":"rec7lYZYpRbr4HBgn","id":"TF-6780-WO-006","name":"PL-2 Drafting","shopName":"PL-2 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-04-02","end":"2026-04-02","hours":1,"pctComplete":0},{"recordId":"rec7t5Hbl4QgyOE9y","id":"TF-6783-WO-023","name":"Stadium Seating CNC","shopName":"Seating CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":4,"pctComplete":0},{"recordId":"rec82Apwd7oGqHu7p","id":"TF-6783-WO-072","name":"Tech Booth Drafting","shopName":"TBooth Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-21","hours":8,"pctComplete":0},{"recordId":"rec88piZnWQvlAqmt","id":"TF-6783-WO-055","name":"Cloak Desk Carpentry","shopName":"Cloak Desk Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-05-27","hours":10,"pctComplete":0},{"recordId":"rec8GJiKFtVZ8s1T9","id":"TF-6901-WO-030","name":"Install Labor \u2013 Activation 5","shopName":"Install Act 5","project":"TF-6901","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-10-02","end":"2026-10-02","hours":16,"pctComplete":0},{"recordId":"rec8QlGuTCc4LZWwP","id":"TF-6901-WO-032","name":"Strike Labor \u2013 Activation 5","shopName":"Strike Act 5","project":"TF-6901","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-10-02","end":"2026-10-02","hours":16,"pctComplete":0},{"recordId":"rec8bCg5LEUKy0Q1i","id":"TF-6780-WO-058","name":"VT-9 Carpentry","shopName":"VT-9 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-10","hours":13,"pctComplete":0},{"recordId":"rec8sHHAcXp5WKron","id":"TF-6780-WO-041","name":"VT-6 Drafting","shopName":"VT-6 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":1,"pctComplete":0},{"recordId":"rec8yXfGfw0dDVj3s","id":"TF-6780-WO-032","name":"VT-3 CNC","shopName":"VT-3 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-05","hours":2,"pctComplete":0},{"recordId":"rec96EHG4PE47Cz5Q","id":"TF-6901-WO-002","name":"CNC \u2013 Purse Elements","shopName":"Purse CNC","project":"TF-6901","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-17","hours":20,"pctComplete":0},{"recordId":"rec96NoBw6KEiJMIo","id":"TF-6783-WO-041","name":"TV Wall Carpentry","shopName":"TV Wall Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-06-01","hours":55,"pctComplete":0},{"recordId":"rec9B7oAxSsBBvRAB","id":"TF-6783-WO-053","name":"Cloak Desk Drafting","shopName":"Cloak Desk Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-22","hours":6,"pctComplete":0},{"recordId":"rec9K9uK7GIjAlbAD","id":"TF-6901-WO-013","name":"TP8 \u2013 Vinyl Print + Apply","shopName":"TP8 vinyl","project":"TF-6901","deptCode":"FLOOR","routing":"Vendor Managed","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":4,"pctComplete":0},{"recordId":"rec9MDc8qSx997nMu","id":"TF-6780-WO-028","name":"VT-2 Carpentry","shopName":"VT-2 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-11","hours":14.5,"pctComplete":0},{"recordId":"rec9QoYa6MOunPGSD","id":"TF-6901-WO-022","name":"Install Labor \u2013 Activation 3","shopName":"Install Act 3","project":"TF-6901","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-08-03","end":"2026-08-03","hours":16,"pctComplete":0},{"recordId":"rec9XtfMzLntUqopu","id":"TF-6857-WO-001","name":"Photocall Drafting","shopName":"Photocall Drafting","project":"TF-6857","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-14","hours":4,"pctComplete":0},{"recordId":"rec9jzK7ptKjzufbq","id":"TF-6783-WO-046","name":"Shirt Display Carpentry","shopName":"Shirt Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-06-01","hours":70,"pctComplete":0},{"recordId":"rec9kOtGRsF4VnCib","id":"TF-6780-WO-023","name":"PL-5 Carpentry","shopName":"PL-5 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-07","hours":19,"pctComplete":0},{"recordId":"recA2T1ZT2B77ZvxN","id":"TF-6783-WO-084","name":"Studio Walls Drafting","shopName":"Studio Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-26","hours":12,"pctComplete":0},{"recordId":"recA4VGXAfNK9Q2yr","id":"TF-6783-WO-091","name":"Ball Towers Carpentry","shopName":"Towers Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-30","hours":24,"pctComplete":0},{"recordId":"recAInZ046joOtVGl","id":"TF-6783-WO-137","name":"Page-Turn: Window Cubbies","shopName":"PT Cubbies","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-16","hours":0.5,"pctComplete":0},{"recordId":"recAj4iO09ywZqQGE","id":"TF-6783-WO-029","name":"Column Shelf Finishing","shopName":"Col Shelf Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-22","hours":6,"pctComplete":0},{"recordId":"recB5LmcbL1Yx4vqo","id":"TF-6783-WO-138","name":"Page-Turn: Wave Element","shopName":"PT Wave","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-16","hours":0.5,"pctComplete":0},{"recordId":"recBAMus842lGL4CK","id":"TF-6780-WO-009","name":"PL-2 Assembly","shopName":"PL-2 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-09","end":"2026-04-09","hours":6.5,"pctComplete":0},{"recordId":"recBFVgvqppGZXfLm","id":"TF-6783-WO-038","name":"Corner Wall Finishing","shopName":"Corner Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-27","hours":4,"pctComplete":0},{"recordId":"recBVeKVI6t7sF1HU","id":"TF-6901-WO-015","name":"Install Trucking \u2013 Activation 1","shopName":"Truck in Act 1","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":5,"pctComplete":0},{"recordId":"recBW9sfPei48529m","id":"TF-6780-WO-011","name":"PL-3 Drafting","shopName":"PL-3 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-03-27","end":"2026-03-28","hours":8,"pctComplete":0},{"recordId":"recBcFCZZTCy7yFP1","id":"TF-6783-WO-102","name":"Back Wall Substrate Carpentry","shopName":"Back Wall Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-22","hours":16,"pctComplete":0},{"recordId":"recBpcZn8Njcb3Rk5","id":"TF-6901-WO-026","name":"Install Labor \u2013 Activation 4","shopName":"Install Act 4","project":"TF-6901","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-09-02","end":"2026-09-02","hours":16,"pctComplete":0},{"recordId":"recCqZaBfU6AzLDFd","id":"TF-6783-WO-111","name":"Miami Bubble Drafting","shopName":"Bubble Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-06-15","end":"2026-06-16","hours":4,"pctComplete":0},{"recordId":"recDMqSNgviJVjy01","id":"TF-6857-WO-015","name":"Strike Event \u2014 Local Strike (on-site, x1 Lead + x3 Installers)","shopName":"Local Strike","project":"TF-6857","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-06-03","end":"2026-06-03","hours":24,"pctComplete":0},{"recordId":"recDPA9ktXGRoIpJu","id":"TF-6857-WO-026","name":"Closeout (Gate 8)","shopName":"Closeout","project":"TF-6857","deptCode":"PM","routing":"Closeout","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-29","hours":6,"pctComplete":0},{"recordId":"recDrdscWmmE8IaSj","id":"TF-6783-WO-069","name":"Panini Curved Walls CNC","shopName":"Panini CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-22","hours":12,"pctComplete":0},{"recordId":"recDzpBrayc3mtgqe","id":"TF-6783-WO-095","name":"Score Cards + LED Frames Drafting","shopName":"Frames Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-26","hours":8,"pctComplete":0},{"recordId":"recEIYmHwRW2IbG7y","id":"TF-6783-WO-001","name":"Charm Wall Structure Drafting","shopName":"Charm Wall Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-19","end":"2026-05-20","hours":12,"pctComplete":0},{"recordId":"recEIaqLOGfB35xrJ","id":"TF-6901-WO-025","name":"Strike Trucking \u2013 Activation 3","shopName":"Truck out Act 3","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-08-03","end":"2026-08-03","hours":5,"pctComplete":0},{"recordId":"recELBfXti0ox1Rqk","id":"TF-6780-WO-013","name":"PL-3 Carpentry","shopName":"PL-3 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-08","hours":32,"pctComplete":0},{"recordId":"recEOcFk9Lqup9hNc","id":"TF-6783-WO-064","name":"Ball Wall CNC","shopName":"Ball Wall CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-26","hours":2,"pctComplete":0},{"recordId":"recEwbQq73QRjAV4G","id":"TF-6780-WO-068","name":"Delivery Event 2 \u2014 Trucking (drive to NYPL)","shopName":"Trucking E2","project":"TF-6780","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Excluded","start":"2026-04-16","end":"2026-04-16","hours":2.5,"pctComplete":0},{"recordId":"recF5Tb0YFKgXb5cU","id":"TF-6780-WO-031","name":"VT-3 Drafting","shopName":"VT-3 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":1,"pctComplete":0},{"recordId":"recFEOxcRhjq4FXKy","id":"TF-6783-WO-016","name":"Product Display 3D Print (stands)","shopName":"Prod Stands 3DP","project":"TF-6783","deptCode":"DIGI","routing":"3D Print","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-23","hours":5,"pctComplete":0},{"recordId":"recFKNXstFzujgRpz","id":"TF-6783-WO-147","name":"Sample: Charm Desk","shopName":"Sample Desk","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":4,"pctComplete":0},{"recordId":"recFNY9FOSLdpOhB9","id":"TF-6783-WO-159","name":"Sample: Score Cards + LED Frames","shopName":"Sample Frames","project":"TF-6783","deptCode":"LAVM","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":4,"pctComplete":0},{"recordId":"recFfm6jLLfCkTMI9","id":"TF-6783-WO-097","name":"Score Cards + LED Frames Carpentry","shopName":"Frames Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-30","hours":20,"pctComplete":0},{"recordId":"recFiqgEcMVPziKWK","id":"TF-6783-WO-115","name":"Miami Installation (Temple House)","shopName":"MIA Install","project":"TF-6783","deptCode":"FLOOR","routing":"Out-of-Area Install","status":"Pending","bucket":"Pending","start":"2026-07-11","end":"2026-07-13","hours":60,"pctComplete":0},{"recordId":"recFjnCb0M71a3Azz","id":"TF-6780-WO-050","name":"VT-7 Finishing","shopName":"VT-7 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-14","hours":16,"pctComplete":0},{"recordId":"recFkpLB8avSMY9ni","id":"TF-6780-WO-029","name":"VT-2 Assembly","shopName":"VT-2 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-12","hours":3.5,"pctComplete":0},{"recordId":"recGGt9DZcT9NYREF","id":"TF-2605-WO-003","name":"Wall Panel drawings","shopName":"Panels dwgs","project":"TF-2605","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-03-25","end":"2026-03-28","hours":12,"pctComplete":0},{"recordId":"recGNwkWa1aI3LM4P","id":"TF-6783-WO-028","name":"Column Shelf Carpentry","shopName":"Col Shelf Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-20","hours":10,"pctComplete":0},{"recordId":"recGPrnI7RjJgjC3c","id":"TF-6783-WO-031","name":"Fuel Your Feed CNC","shopName":"FYF CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-23","hours":6,"pctComplete":0},{"recordId":"recGmXGXEHpgAQP0M","id":"TF-6780-WO-051","name":"VT-8 Drafting","shopName":"VT-8 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":1,"pctComplete":0},{"recordId":"recGqLj5xJY6i9RHP","id":"TF-6783-WO-149","name":"Sample: Stadium Seating","shopName":"Sample Stadium","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":6,"pctComplete":0},{"recordId":"recGqpCo4uVyZcVSX","id":"TF-6857-WO-019","name":"Pack-Load Overhead (Carting & Disposal redistribution)","shopName":"Pack-Load Overhead","project":"TF-6857","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-06-01","hours":8.75,"pctComplete":0},{"recordId":"recGsYZrhgnIIK2fy","id":"TF-6783-WO-063","name":"Ball Wall Drafting","shopName":"Ball Wall Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-25","hours":6,"pctComplete":0},{"recordId":"recGtBuyIij5MFqtw","id":"TF-6857-WO-022","name":"Kickoff (Gate 5)","shopName":"Kickoff","project":"TF-6857","deptCode":"PM","routing":"Kickoff","status":"Complete","bucket":"Excluded","start":null,"end":"2026-05-04","hours":2,"pctComplete":0},{"recordId":"recH0PQ9WV2VvGlYu","id":"TF-6783-WO-074","name":"Tech Booth Carpentry","shopName":"TBooth Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-26","hours":24,"pctComplete":0},{"recordId":"recHaTEOGdEjnFwsd","id":"TF-6783-WO-087","name":"Studio Walls Lighting","shopName":"Studio Light","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-29","end":"2026-05-31","hours":16,"pctComplete":0},{"recordId":"recHgAsoIrU52dC6k","id":"TF-6783-WO-135","name":"Page-Turn: Panini Curved Walls","shopName":"PT Panini","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-21","hours":0.5,"pctComplete":0},{"recordId":"recHmlN6zGeWpeyhT","id":"TF-6783-WO-158","name":"Sample: Ball Towers","shopName":"Sample Towers","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":3,"pctComplete":0},{"recordId":"recIGjAYD9gCyWvnX","id":"TF-6783-WO-144","name":"Closeout (Gate 8)","shopName":"Closeout","project":"TF-6783","deptCode":"PM","routing":"Closeout","status":"Pending","bucket":"Pending","start":null,"end":"2026-08-08","hours":6,"pctComplete":0},{"recordId":"recIXsQqQeyYA7QUL","id":"TF-6857-WO-020","name":"Handoff (Gate 3)","shopName":"Handoff","project":"TF-6857","deptCode":"PM","routing":"Handoff","status":"Complete","bucket":"Excluded","start":null,"end":"2026-05-03","hours":6,"pctComplete":0},{"recordId":"recIiW80SQeGP7or0","id":"TF-6783-WO-008","name":"Charm Wall Fleurs Finishing","shopName":"Fleurs Paint","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-05-27","hours":40,"pctComplete":0},{"recordId":"recIlLqQHYakT3gkW","id":"TF-2605-WO-021","name":"Wall panel assembly + integration","shopName":"Panel assy","project":"TF-2605","deptCode":"FLOOR","routing":"Assembly","status":"Cancelled","bucket":"Excluded","start":"2026-04-25","end":"2026-04-29","hours":8,"pctComplete":0},{"recordId":"recJ621ZgqwpSVaGC","id":"TF-6783-WO-057","name":"Cloakroom Wall Carpentry (10x WF007)","shopName":"Cloakroom Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-19","end":"2026-05-23","hours":27.5,"pctComplete":0},{"recordId":"recJPyKHyVPi6pcdf","id":"TF-6783-WO-067","name":"Ball Wall Finishing","shopName":"Ball Wall Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-01","end":"2026-06-04","hours":18,"pctComplete":0},{"recordId":"recJVvHMlIioTyqBG","id":"TF-6783-WO-108","name":"Touch Ups Finishing","shopName":"Touch Up Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-29","end":"2026-07-01","hours":12,"pctComplete":0},{"recordId":"recJiX8Qa8P1HOZ84","id":"TF-6783-WO-122","name":"Page-Turn: Charm Desk","shopName":"PT Charm Desk","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-19","hours":0.5,"pctComplete":0},{"recordId":"recK8rsErCNtm06GG","id":"TF-6783-WO-042","name":"TV Wall LAVM","shopName":"TV Wall LAVM","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-30","end":"2026-06-04","hours":16,"pctComplete":0},{"recordId":"recKLfP1gxWlQfupu","id":"TF-6857-WO-005","name":"Photocall Finishing (white wash)","shopName":"Photocall Finishing","project":"TF-6857","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-05-27","hours":18,"pctComplete":0},{"recordId":"recKNLEfvqikK8AH3","id":"TF-6780-WO-064","name":"S-1 Finishing (stretch screen, mount hardware)","shopName":"S-1 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-06","end":"2026-04-06","hours":2,"pctComplete":0},{"recordId":"recKNhKqSkUmBQB4A","id":"TF-6783-WO-092","name":"Ball Towers Lighting","shopName":"Towers Light","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-29","end":"2026-05-31","hours":12,"pctComplete":0},{"recordId":"recKTtJMmmWwZ25EP","id":"TF-6783-WO-047","name":"Shirt Display LAVM (24v through-wall)","shopName":"Shirt LAVM","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-06-01","hours":14,"pctComplete":0},{"recordId":"recKXZ5b3zJ9PuWvb","id":"TF-2605-WO-011","name":"Hero Tower carcass","shopName":"Hero carcass","project":"TF-2605","deptCode":"FLOOR","routing":"Carpentry","status":"Cancelled","bucket":"Excluded","start":"2026-04-03","end":"2026-04-10","hours":40,"pctComplete":0.55},{"recordId":"recKZuIbk5Tdj4gm8","id":"TF-6901-WO-024","name":"Strike Labor \u2013 Activation 3","shopName":"Strike Act 3","project":"TF-6901","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-08-03","end":"2026-08-03","hours":16,"pctComplete":0},{"recordId":"recKhAA7mI3xagYkL","id":"TF-6783-WO-153","name":"Sample: Photo Booth","shopName":"Sample Photo Booth","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-15","hours":4,"pctComplete":0},{"recordId":"recKrP8UC60kOPWVT","id":"TF-6901-WO-036","name":"Kickoff (Gate 5)","shopName":"Kickoff","project":"TF-6901","deptCode":"PM","routing":"Kickoff","status":"Complete","bucket":"Excluded","start":null,"end":"2026-05-10","hours":2,"pctComplete":0},{"recordId":"recKsbvkEbZDGJ3Qh","id":"TF-6857-WO-006","name":"Scenic Flats Carpentry (WF002 x6 + WF007 x2)","shopName":"Scenic Flats Carp","project":"TF-6857","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-22","hours":22,"pctComplete":0},{"recordId":"recKt5nIzmRT7WDEp","id":"TF-6780-WO-062","name":"S-1 Carpentry (MDF backer)","shopName":"S-1 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":1,"pctComplete":0},{"recordId":"recKuTd6KOgpXG5nS","id":"TF-6857-WO-003","name":"Photocall Carpentry (build + WF007 x2)","shopName":"Photocall Carpentry","project":"TF-6857","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-16","end":"2026-05-21","hours":20,"pctComplete":0},{"recordId":"recKwyNUC0JtdHQla","id":"TF-6857-WO-002","name":"Photocall 3D Print (fleur logos)","shopName":"Photocall 3D Print","project":"TF-6857","deptCode":"DIGI","routing":"3D Print","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-18","hours":3.5,"pctComplete":0},{"recordId":"recKyoNtZQHhZVqd0","id":"TF-6783-WO-129","name":"Page-Turn: TV Wall","shopName":"PT TV Wall","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-21","hours":0.5,"pctComplete":0},{"recordId":"recLHjPAfAwe8pTux","id":"TF-6783-WO-051","name":"Cloak Lockers Carpentry","shopName":"Cloak Lock Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-24","end":"2026-05-28","hours":50,"pctComplete":0},{"recordId":"recLYXWw0MIdkVtOR","id":"TF-2605-WO-019","name":"Audio sync programming","shopName":"AV sync","project":"TF-2605","deptCode":"LAVM","routing":"AV","status":"Cancelled","bucket":"Excluded","start":"2026-04-29","end":"2026-05-01","hours":8,"pctComplete":0},{"recordId":"recM0M6wprQqAD7Zn","id":"TF-6780-WO-001","name":"PL-1 Drafting","shopName":"PL-1 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-04-02","end":"2026-04-02","hours":2,"pctComplete":0},{"recordId":"recMAqFfLrSSx8mim","id":"TF-6857-WO-011","name":"Soft Serve Shroud Carpentry (WF002 x4)","shopName":"Soft Serve Carp","project":"TF-6857","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-22","hours":11,"pctComplete":0},{"recordId":"recMXOQ7p0FIARreX","id":"TF-6780-WO-030","name":"VT-2 Finishing","shopName":"VT-2 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-13","end":"2026-04-14","hours":12,"pctComplete":0},{"recordId":"recMXv26xWAmSpZdm","id":"TF-6780-WO-067","name":"Delivery Event 2 \u2014 Pack-Load (VT-2..9)","shopName":"Pack-Load E2 (4/27)","project":"TF-6780","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Excluded","start":"2026-04-14","end":"2026-04-15","hours":7.5,"pctComplete":0},{"recordId":"recMc46lDsj10TuZB","id":"TF-6780-WO-047","name":"VT-7 CNC","shopName":"VT-7 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":4,"pctComplete":0},{"recordId":"recN7rMRmOOU3FKco","id":"TF-2605-WO-007","name":"Counter parts CNC","shopName":"Counter CNC","project":"TF-2605","deptCode":"DIGI","routing":"CNC","status":"Complete","bucket":"Excluded","start":"2026-04-02","end":"2026-04-03","hours":6,"pctComplete":0},{"recordId":"recNFFH5goi1X8x41","id":"TF-6780-WO-034","name":"VT-3 Assembly","shopName":"VT-3 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-12","hours":2.5,"pctComplete":0},{"recordId":"recOD7pAXaVHCt96I","id":"TF-6857-WO-016","name":"Strike Event \u2014 Trucking (driver back to shop)","shopName":"Trucking (Strike)","project":"TF-6857","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-06-04","end":"2026-06-04","hours":4,"pctComplete":0},{"recordId":"recOKajlNoMBC4EXa","id":"TF-6783-WO-054","name":"Cloak Desk CNC","shopName":"Cloak Desk CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-24","hours":5,"pctComplete":0},{"recordId":"recOauQeASmPKZ3vC","id":"TF-6783-WO-157","name":"Sample: Studio Walls / LED Pony Walls","shopName":"Sample Studio","project":"TF-6783","deptCode":"LAVM","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":6,"pctComplete":0},{"recordId":"recOd3KvvrzTQ8xVl","id":"TF-6780-WO-053","name":"VT-8 Carpentry","shopName":"VT-8 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-10","hours":13,"pctComplete":0},{"recordId":"recOswinlt2682uSC","id":"TF-6783-WO-124","name":"Page-Turn: Aux Desk","shopName":"PT Aux Desk","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-22","hours":0.5,"pctComplete":0},{"recordId":"recOuU0q7LxxLgevN","id":"TF-6783-WO-004","name":"Charm Wall LAVM Integration","shopName":"Charm Wall LAVM","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-28","hours":10,"pctComplete":0},{"recordId":"recOvqFV3PywFReWW","id":"TF-2605-WO-016","name":"Hero Tower LED + motion integration","shopName":"Hero Tech-Up","project":"TF-2605","deptCode":"FLOOR","routing":"Tech-Up","status":"Cancelled","bucket":"Excluded","start":"2026-04-22","end":"2026-04-24","hours":16,"pctComplete":0},{"recordId":"recP00TgIYXRtAt8v","id":"TF-6901-WO-011","name":"Surface Prep + Paint \u2013 Charm","shopName":"Charm finish","project":"TF-6901","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-31","hours":15,"pctComplete":0},{"recordId":"recPQggssXUpGnSMn","id":"TF-6783-WO-152","name":"Sample: TV Wall (Create Your Fit)","shopName":"Sample TV Wall","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":4,"pctComplete":0},{"recordId":"recPbybnPSBzzOnQE","id":"TF-6783-WO-059","name":"Photo Booth CNC","shopName":"Photo Booth CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-26","hours":4,"pctComplete":0},{"recordId":"recPkhg6VRlvoZqk3","id":"TF-6783-WO-078","name":"Window Cubbies Carpentry","shopName":"Cubbies Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-27","hours":32,"pctComplete":0},{"recordId":"recPz8lAGbXEB9tpp","id":"TF-6783-WO-071","name":"Panini Curved Walls Finishing","shopName":"Panini Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-29","hours":10,"pctComplete":0},{"recordId":"recQICEQyrLq2OATi","id":"TF-6783-WO-118","name":"Plan Approval (Gate 4)","shopName":"Plan Approval","project":"TF-6783","deptCode":"PM","routing":"Plan Approval","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-18","hours":4,"pctComplete":0},{"recordId":"recQKNaRdZks6Mfvp","id":"TF-6783-WO-105","name":"NYC Installation at Iron 23","shopName":"NYC Install","project":"TF-6783","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-06-06","end":"2026-06-09","hours":240,"pctComplete":0},{"recordId":"recQO7YSokMtlR4aw","id":"TF-6783-WO-090","name":"Ball Towers Drafting","shopName":"Towers Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-26","hours":6,"pctComplete":0},{"recordId":"recQYcLuQGO3WTMou","id":"TF-2605-WO-018","name":"Wall panel LED edge lighting","shopName":"Panel LED","project":"TF-2605","deptCode":"LAVM","routing":"Lighting","status":"Cancelled","bucket":"Excluded","start":"2026-04-19","end":"2026-04-24","hours":12,"pctComplete":0},{"recordId":"recQcNfJcRD6YBvwQ","id":"TF-6857-WO-018","name":"Engineering Design (project-level build drawings)","shopName":"Eng Design","project":"TF-6857","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-16","hours":12,"pctComplete":0},{"recordId":"recQefumlumWqMYj3","id":"TF-6780-WO-065","name":"Delivery Event 1 \u2014 Pack-Load (PL-1..5 + S-1)","shopName":"Pack-Load E1 (4/24)","project":"TF-6780","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-12","hours":10.5,"pctComplete":0},{"recordId":"recQlj8dHXHxWHj4x","id":"TF-6780-WO-059","name":"VT-9 Assembly","shopName":"VT-9 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-11","hours":3,"pctComplete":0},{"recordId":"recR6QmplrsgxWJHu","id":"TF-6783-WO-070","name":"Panini Curved Walls Carpentry","shopName":"Panini Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-26","hours":30,"pctComplete":0},{"recordId":"recROzB3PxhPEmvi4","id":"TF-6857-WO-014","name":"Install Event \u2014 Local Install (on-site, x1 Lead + x4 Installers)","shopName":"Local Install","project":"TF-6857","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-06-01","end":"2026-06-02","hours":40,"pctComplete":0},{"recordId":"recRaez4IDfhvvgFs","id":"TF-6783-WO-100","name":"Score Cards + LED Frames Assembly","shopName":"Frames Asm","project":"TF-6783","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Pending","start":"2026-05-31","end":"2026-06-01","hours":6,"pctComplete":0},{"recordId":"recReF2F0lnUibkMQ","id":"TF-6783-WO-066","name":"Ball Wall LAVM (any lit balls)","shopName":"Ball Wall LAVM","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-30","hours":6,"pctComplete":0},{"recordId":"recRnbemGOaUXWP2j","id":"TF-6783-WO-113","name":"Miami Bubble Finishing","shopName":"Bubble Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-13","end":"2026-06-14","hours":6,"pctComplete":0},{"recordId":"recRuzVZNJMKmI74H","id":"TF-6857-WO-008","name":"Fleurs CNC (MDF cuts)","shopName":"Fleurs CNC","project":"TF-6857","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-16","hours":2,"pctComplete":0},{"recordId":"recS3jG7keL1R0NrO","id":"TF-6780-WO-033","name":"VT-3 Carpentry","shopName":"VT-3 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-06","end":"2026-04-11","hours":9.5,"pctComplete":0},{"recordId":"recSKXomUEwU1bLrM","id":"TF-6901-WO-014","name":"Install Labor \u2013 Activation 1","shopName":"Install Act 1","project":"TF-6901","deptCode":"FLOOR","routing":"Local Install","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":16,"pctComplete":0},{"recordId":"recSZ6lFaLJcSunPu","id":"TF-6857-WO-009","name":"Fleurs Carpentry (3.5h build + WF006 x4)","shopName":"Fleurs Carpentry","project":"TF-6857","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-22","hours":13.5,"pctComplete":0},{"recordId":"recSbiw5pYIVWrAFr","id":"TF-6857-WO-024","name":"Page-Turn (Gate 6) \u2014 Fleurs Drafting","shopName":"Page-Turn \u2014 Fleurs","project":"TF-6857","deptCode":"DRAFT","routing":"Page-Turn","status":"QC","bucket":"Excluded","start":null,"end":"2026-05-06","hours":0.5,"pctComplete":0},{"recordId":"recSjP10TwQSPa2PX","id":"TF-6783-WO-132","name":"Page-Turn: Cloak Desk","shopName":"PT Cloak Desk","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-20","hours":0.5,"pctComplete":0},{"recordId":"recSxifEu6qJRSiTH","id":"TF-6783-WO-005","name":"Charm Wall Finishing","shopName":"Charm Wall Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-06-01","hours":20,"pctComplete":0},{"recordId":"recTDH6vPcGGsiEPc","id":"TF-6783-WO-133","name":"Page-Turn: Photo Booth","shopName":"PT Photo Booth","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-18","hours":0.5,"pctComplete":0},{"recordId":"recTX9o2pNHnTwu2P","id":"TF-2605-WO-009","name":"Wall panel aluminum frames","shopName":"Panel frames","project":"TF-2605","deptCode":"FLOOR","routing":"Metalwork","status":"Cancelled","bucket":"Excluded","start":"2026-04-03","end":"2026-04-08","hours":24,"pctComplete":0},{"recordId":"recTYJ1f7K0ffh2YN","id":"TF-6783-WO-073","name":"Tech Booth CNC","shopName":"TBooth CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-22","hours":4,"pctComplete":0},{"recordId":"recTm5pEU2aZhTtxh","id":"TF-6783-WO-037","name":"Corner Wall LAVM","shopName":"Corner LAVM","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-25","hours":8,"pctComplete":0},{"recordId":"recTxXhCBq7gMI8O3","id":"TF-6783-WO-148","name":"Sample: Product Display Wall","shopName":"Sample Prod Disp","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-15","hours":6,"pctComplete":0},{"recordId":"recU5vYYoEBAodOeK","id":"TF-2605-WO-023","name":"Local Install Day 1","shopName":"Install Day 1","project":"TF-2605","deptCode":"FLOOR","routing":"Local Install","status":"Cancelled","bucket":"Excluded","start":"2026-05-03","end":"2026-05-03","hours":16,"pctComplete":0},{"recordId":"recU8D5C8cn8WtLPJ","id":"TF-6783-WO-123","name":"Page-Turn: Product Display Wall","shopName":"PT Prod Display","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-28","hours":0.5,"pctComplete":0},{"recordId":"recUBcb6e71gxxWJH","id":"TF-6780-WO-004","name":"PL-1 Assembly","shopName":"PL-1 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-08","end":"2026-04-08","hours":5,"pctComplete":0},{"recordId":"recUBfc4klxDfNlNs","id":"TF-6780-WO-026","name":"VT-2 Drafting","shopName":"VT-2 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":1,"pctComplete":0},{"recordId":"recUD0KuSRW3osojx","id":"TF-6783-WO-061","name":"Photo Booth LAVM","shopName":"Photo Booth LAVM","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-30","hours":8,"pctComplete":0},{"recordId":"recUWkmq2PrxcCnnC","id":"TF-6780-WO-035","name":"VT-3 Finishing","shopName":"VT-3 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-13","end":"2026-04-15","hours":8,"pctComplete":0},{"recordId":"recUf0jtX6SYqBhXT","id":"TF-6783-WO-033","name":"Fuel Your Feed Finishing","shopName":"FYF Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-05-29","hours":27,"pctComplete":0},{"recordId":"recV25b93wUJBevpu","id":"TF-6783-WO-136","name":"Page-Turn: Tech Booth","shopName":"PT Tech Booth","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-19","hours":0.5,"pctComplete":0},{"recordId":"recVnwTq8aEdeB9Sy","id":"TF-6901-WO-009","name":"Finishing \u2013 Base","shopName":"Base finish","project":"TF-6901","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-19","hours":17,"pctComplete":0},{"recordId":"recVoCR4wIG5q5h7e","id":"TF-6901-WO-038","name":"Closeout (Gate 8)","shopName":"Closeout","project":"TF-6901","deptCode":"PM","routing":"Closeout","status":"Pending","bucket":"Pending","start":null,"end":"2026-10-16","hours":6,"pctComplete":0},{"recordId":"recVsOgs1G7L3LbhF","id":"TF-6780-WO-014","name":"PL-3 Assembly (dry-fit bench + platform)","shopName":"PL-3 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-10","end":"2026-04-10","hours":8,"pctComplete":0},{"recordId":"recW7qE7cxcEOjVol","id":"TF-6780-WO-012","name":"PL-3 CNC","shopName":"PL-3 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-03-30","end":"2026-04-02","hours":24,"pctComplete":0},{"recordId":"recWD5jfqgsNoT8sL","id":"TF-6783-WO-058","name":"Photo Booth Drafting","shopName":"Photo Booth Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-25","hours":8,"pctComplete":0},{"recordId":"recWEbfPfPHcBuaCq","id":"TF-6783-WO-006","name":"Charm Wall Fleurs Drafting","shopName":"Fleurs Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-19","end":"2026-05-20","hours":5,"pctComplete":0},{"recordId":"recWW5pPBIjpobFKW","id":"TF-6780-WO-018","name":"PL-4 Carpentry","shopName":"PL-4 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-07","hours":19,"pctComplete":0},{"recordId":"recWk9vBqKJoYeMYg","id":"TF-6783-WO-014","name":"Product Display Wall CNC","shopName":"Prod Wall CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":8,"pctComplete":0},{"recordId":"recX7a3q1Ua26UF1J","id":"TF-6780-WO-019","name":"PL-4 Assembly","shopName":"PL-4 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-08","end":"2026-04-08","hours":5,"pctComplete":0},{"recordId":"recXGlCTrWeKKvP3O","id":"TF-2606-WO-003","name":"Scenesters assembly + install prep","shopName":"Scenesters assy","project":"TF-2606","deptCode":"FLOOR","routing":"Assembly","status":"Cancelled","bucket":"Excluded","start":"2026-03-25","end":"2026-03-29","hours":40,"pctComplete":0},{"recordId":"recXNkZ1rW3NSIOYy","id":"TF-6780-WO-005","name":"PL-1 Finishing","shopName":"PL-1 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-09","end":"2026-04-11","hours":16,"pctComplete":0},{"recordId":"recXQBL216inEhb7o","id":"TF-6783-WO-021","name":"Aux Desk Finishing","shopName":"Aux Desk Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-22","hours":7,"pctComplete":0},{"recordId":"recXhjNkQZA5ZWibU","id":"TF-2605-WO-005","name":"Soft Goods specs to TP8","shopName":"TP8 specs","project":"TF-2605","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-03-29","end":"2026-03-29","hours":4,"pctComplete":0},{"recordId":"recXlfapEItK98c7j","id":"TF-6783-WO-110","name":"PM Carting Overhead","shopName":"PM Carting","project":"TF-6783","deptCode":"PM","routing":"PM Time","status":"Pending","bucket":"Pending","start":"2026-07-13","end":"2026-07-16","hours":6,"pctComplete":0},{"recordId":"recYT5pRrb4sh8zBU","id":"TF-6780-WO-040","name":"VT-5 Finishing","shopName":"VT-5 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-12","end":"2026-04-14","hours":12,"pctComplete":0},{"recordId":"recYvPNB7663VT5A5","id":"TF-6783-WO-086","name":"Studio Walls Carpentry","shopName":"Studio Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-30","hours":48,"pctComplete":0},{"recordId":"recYygJCvW0wmZPjX","id":"TF-6783-WO-130","name":"Page-Turn: Shirt Display","shopName":"PT Shirt Display","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-21","hours":0.5,"pctComplete":0},{"recordId":"recZ31UeHualmIg5F","id":"TF-6783-WO-145","name":"Sample: Charm Wall Structure","shopName":"Sample CWS","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":4,"pctComplete":0},{"recordId":"recZJjjqh9HR9buUn","id":"TF-6780-WO-024","name":"PL-5 Assembly","shopName":"PL-5 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-08","end":"2026-04-08","hours":5,"pctComplete":0},{"recordId":"recZYIhu8q3V30Dm3","id":"TF-6783-WO-155","name":"Sample: Panini Curved Walls","shopName":"Sample Panini","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-15","hours":6,"pctComplete":0},{"recordId":"recZhkudh6QNC2gLH","id":"TF-2605-WO-008","name":"Wall panel substrate CNC","shopName":"Panel CNC","project":"TF-2605","deptCode":"DIGI","routing":"CNC","status":"Complete","bucket":"Excluded","start":"2026-03-29","end":"2026-04-02","hours":8,"pctComplete":0},{"recordId":"recZogei2JOKQpK4O","id":"TF-6783-WO-143","name":"Page-Turn: Miami Bubble","shopName":"PT Bubble","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-06-13","hours":0.5,"pctComplete":0},{"recordId":"recaB9sN7WQMZAnO8","id":"TF-6780-WO-010","name":"PL-2 Finishing","shopName":"PL-2 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-10","end":"2026-04-11","hours":16,"pctComplete":0},{"recordId":"recaES6hk9uxGHP2h","id":"TF-6901-WO-005","name":"Finish + Paint \u2013 Purse","shopName":"Purse paint","project":"TF-6901","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-16","end":"2026-05-21","hours":20,"pctComplete":0},{"recordId":"recaHEYiEzcAZjUNw","id":"TF-6780-WO-016","name":"PL-4 Drafting","shopName":"PL-4 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-04-02","end":"2026-04-02","hours":2,"pctComplete":0},{"recordId":"recaPAWFFWKoqmBIX","id":"TF-6857-WO-007","name":"Fleurs Drafting","shopName":"Fleurs Drafting","project":"TF-6857","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-15","hours":1,"pctComplete":0},{"recordId":"recaUNDMen8SLQa9M","id":"TF-6783-WO-093","name":"Ball Towers Finishing","shopName":"Towers Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-02","end":"2026-06-03","hours":10,"pctComplete":0},{"recordId":"recaxzJwLU1Uv0mBS","id":"TF-6780-WO-020","name":"PL-4 Finishing","shopName":"PL-4 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-09","end":"2026-04-12","hours":24,"pctComplete":0},{"recordId":"recbFglSPkRSOgEwe","id":"TF-6783-WO-139","name":"Page-Turn: Studio Walls","shopName":"PT Studio","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-23","hours":0.5,"pctComplete":0},{"recordId":"recbHW2ZQUnsoUPUH","id":"TF-2605-WO-010","name":"Lighting truss fabrication","shopName":"Truss fab","project":"TF-2605","deptCode":"FLOOR","routing":"Metalwork","status":"Cancelled","bucket":"Excluded","start":"2026-04-11","end":"2026-04-18","hours":32,"pctComplete":0},{"recordId":"recbOjeWh6bCwewyy","id":"TF-2605-WO-024","name":"Local Install Day 2","shopName":"Install Day 2","project":"TF-2605","deptCode":"FLOOR","routing":"Local Install","status":"Cancelled","bucket":"Excluded","start":"2026-05-06","end":"2026-05-06","hours":12,"pctComplete":0},{"recordId":"recbTt1r6xvYvzQO0","id":"TF-6780-WO-027","name":"VT-2 CNC","shopName":"VT-2 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":2,"pctComplete":0},{"recordId":"recboMP57nC8t2nVn","id":"TF-6783-WO-146","name":"Sample: Charm Wall Fleurs","shopName":"Sample Fleurs","project":"TF-6783","deptCode":"DIGI","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":5,"pctComplete":0},{"recordId":"recbz3d9p8yhDwlBL","id":"TF-6783-WO-003","name":"Charm Wall Structure Carpentry","shopName":"Charm Wall Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-26","hours":50,"pctComplete":0},{"recordId":"recc0KlcZmIJ3TXi5","id":"TF-6783-WO-094","name":"Ball Towers Assembly","shopName":"Towers Asm","project":"TF-6783","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Pending","start":"2026-05-31","end":"2026-06-01","hours":6,"pctComplete":0},{"recordId":"recc0hHHrFEsaRBDK","id":"TF-6901-WO-010","name":"Massivit Print \u2013 Charm","shopName":"Charm 3D print","project":"TF-6901","deptCode":"DIGI","routing":"3D Print","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-05-25","hours":3.6,"pctComplete":0},{"recordId":"recc1O6RtLlC4rcXP","id":"TF-6783-WO-085","name":"Studio Walls CNC","shopName":"Studio CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-05-25","hours":8,"pctComplete":0},{"recordId":"reccHWXIzSmq2hhvM","id":"TF-6780-WO-061","name":"S-1 Metalwork (aluminum frame)","shopName":"S-1 Metalwork","project":"TF-6780","deptCode":"FLOOR","routing":"Metalwork","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":4,"pctComplete":0},{"recordId":"reccKbx8axxA3J6m5","id":"TF-6783-WO-082","name":"Wave Element Carpentry","shopName":"Wave Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-27","hours":30,"pctComplete":0},{"recordId":"reccNmzK0PxhZ6bcJ","id":"TF-6783-WO-013","name":"Product Display Wall Drafting","shopName":"Prod Wall Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-20","hours":16,"pctComplete":0},{"recordId":"reccTPNFaWDGLTTQN","id":"TF-6783-WO-065","name":"Ball Wall Carpentry","shopName":"Ball Wall Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-31","hours":40,"pctComplete":0},{"recordId":"reccZsRdMOC0aMe0F","id":"TF-6783-WO-039","name":"TV Wall Drafting","shopName":"TV Wall Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-19","hours":16,"pctComplete":0},{"recordId":"reccgXlLgckQiG5S2","id":"TF-6783-WO-081","name":"Wave Element CNC","shopName":"Wave CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-23","hours":6,"pctComplete":0},{"recordId":"recctPVnpixq5uMKF","id":"TF-6783-WO-150","name":"Sample: Fuel Your Feed Locker","shopName":"Sample FYF","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":6,"pctComplete":0},{"recordId":"recctiuVGKQAiNsfI","id":"TF-6783-WO-080","name":"Wave Element Drafting","shopName":"Wave Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-19","hours":8,"pctComplete":0},{"recordId":"recdJkbjZXrZ7Lrl7","id":"TF-6780-WO-046","name":"VT-7 Drafting","shopName":"VT-7 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":1,"pctComplete":0},{"recordId":"recdc07ceglXdAJ9D","id":"TF-6901-WO-023","name":"Install Trucking \u2013 Activation 3","shopName":"Truck in Act 3","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-08-03","end":"2026-08-03","hours":5,"pctComplete":0},{"recordId":"recdkWHfQGas5pSex","id":"TF-6783-WO-068","name":"Panini Curved Walls Drafting","shopName":"Panini Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-21","hours":16,"pctComplete":0},{"recordId":"recdolObNyFdOW9Ej","id":"TF-6783-WO-002","name":"Charm Wall Structure CNC","shopName":"Charm Wall CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":5,"pctComplete":0},{"recordId":"recdxvnuU4QtzYIpR","id":"TF-6857-WO-004","name":"Photocall Assembly","shopName":"Photocall Assembly","project":"TF-6857","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-22","hours":3.5,"pctComplete":0},{"recordId":"recdy5XGan67VdJCy","id":"TF-6783-WO-009","name":"Charm Desk Drafting","shopName":"Charm Desk Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-06-01","hours":8,"pctComplete":0},{"recordId":"rece5SzvSsT0v744k","id":"TF-6857-WO-017","name":"Strike Event \u2014 Pack-Load (shop cleaning post-strike)","shopName":"Shop Cleaning (post-Strike)","project":"TF-6857","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Pending","start":"2026-06-05","end":"2026-06-05","hours":2,"pctComplete":0},{"recordId":"receEiKiEHgbcw4Fp","id":"TF-6783-WO-012","name":"Charm Desk Finishing","shopName":"Charm Desk Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-27","hours":30,"pctComplete":0},{"recordId":"receKQ2u4XpR0Tuoq","id":"TF-6783-WO-107","name":"Touch Ups Carpentry","shopName":"Touch Up Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-06-24","end":"2026-06-26","hours":16,"pctComplete":0},{"recordId":"recf2c6aKkwBCLxzX","id":"TF-6783-WO-101","name":"Back Wall Substrate Drafting","shopName":"Back Wall Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-19","end":"2026-05-19","hours":4,"pctComplete":0},{"recordId":"recf5lj5lDmINZNhr","id":"TF-6783-WO-015","name":"Product Display Wall Carpentry","shopName":"Prod Wall Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-25","hours":50,"pctComplete":0},{"recordId":"recfTbkalbs9HlLeo","id":"TF-6901-WO-020","name":"Strike Labor \u2013 Activation 2","shopName":"Strike Act 2","project":"TF-6901","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-07-07","end":"2026-07-07","hours":16,"pctComplete":0},{"recordId":"recfUd737NpqAXj2Z","id":"TF-2605-WO-012","name":"Counter box","shopName":"Counter box","project":"TF-2605","deptCode":"FLOOR","routing":"Carpentry","status":"Complete","bucket":"Excluded","start":"2026-04-04","end":"2026-04-08","hours":16,"pctComplete":0},{"recordId":"recfjPFuWHalOb8Y7","id":"TF-6783-WO-062","name":"Photo Booth Finishing","shopName":"Photo Booth Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-01","end":"2026-06-03","hours":20,"pctComplete":0},{"recordId":"recg1XmirkDSDqgbN","id":"TF-6901-WO-027","name":"Install Trucking \u2013 Activation 4","shopName":"Truck in Act 4","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-09-02","end":"2026-09-02","hours":5,"pctComplete":0},{"recordId":"recg7HKE5VRzw6GFh","id":"TF-6780-WO-063","name":"S-1 Assembly","shopName":"S-1 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-05","hours":1,"pctComplete":0},{"recordId":"recgAn7BFxW0pElyR","id":"TF-6783-WO-020","name":"Aux Desk Carpentry","shopName":"Aux Desk Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-17","end":"2026-05-19","hours":9,"pctComplete":0},{"recordId":"recgHCOoRmecQFrVR","id":"TF-6783-WO-083","name":"Wave Element Finishing","shopName":"Wave Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-06-03","hours":24,"pctComplete":0},{"recordId":"recgOgO77aTOw4SUB","id":"TF-6783-WO-117","name":"Handoff (Gate 3)","shopName":"Handoff","project":"TF-6783","deptCode":"PM","routing":"Handoff","status":"Complete","bucket":"Excluded","start":null,"end":"2026-05-12","hours":6,"pctComplete":0},{"recordId":"recgsPZXUSOW6CqS8","id":"TF-6783-WO-040","name":"TV Wall CNC","shopName":"TV Wall CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-20","hours":3,"pctComplete":0},{"recordId":"rech3O76BE1UZOAbN","id":"TF-6901-WO-012","name":"File Prep + Client Proof \u2013 Vinyl","shopName":"Vinyl proof","project":"TF-6901","deptCode":"PM","routing":"PM Time","status":"Active","bucket":"Active","start":"2026-05-14","end":"2026-05-18","hours":4,"pctComplete":0.25},{"recordId":"rechLNQj0tgDTWvw2","id":"TF-6783-WO-011","name":"Charm Desk Carpentry","shopName":"Charm Desk Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-25","hours":50,"pctComplete":0},{"recordId":"rechZ7aYLmEa8McOf","id":"TF-6783-WO-120","name":"Page-Turn: Charm Wall Structure","shopName":"PT Charm Struct","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-19","hours":0.5,"pctComplete":0},{"recordId":"rechbF1bNWwWSGU1W","id":"TF-6901-WO-007","name":"Laser Cut Acrylic \u2013 Base Signage","shopName":"Base laser","project":"TF-6901","deptCode":"DIGI","routing":"Laser","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-17","hours":8,"pctComplete":0},{"recordId":"rechbFUFMrbdsLt0f","id":"TF-6901-WO-016","name":"Strike Labor \u2013 Activation 1","shopName":"Strike Act 1","project":"TF-6901","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-21","hours":16,"pctComplete":0},{"recordId":"rechkXzoA5WbfnG1k","id":"TF-2605-WO-022","name":"Pack-Load all elements","shopName":"Pack-Load","project":"TF-2605","deptCode":"FLOOR","routing":"Pack-Load","status":"Cancelled","bucket":"Excluded","start":"2026-05-02","end":"2026-05-02","hours":8,"pctComplete":0},{"recordId":"rechqQU5qsfn94nfH","id":"TF-6783-WO-151","name":"Sample: Corner Wall","shopName":"Sample Corner Wall","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-18","end":"2026-05-18","hours":6,"pctComplete":0},{"recordId":"reci3N0UFahBmWpCF","id":"TF-6780-WO-002","name":"PL-1 CNC","shopName":"PL-1 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":6,"pctComplete":0},{"recordId":"recisCRRtZ6ylTTJ0","id":"TF-6783-WO-114","name":"Miami Trucking (NY \u2192 Miami)","shopName":"MIA Truck","project":"TF-6783","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-07-08","end":"2026-07-10","hours":32,"pctComplete":0},{"recordId":"recjMXlbpyzIb93Jh","id":"TF-6783-WO-089","name":"Studio Walls Assembly","shopName":"Studio Asm","project":"TF-6783","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Pending","start":"2026-05-31","end":"2026-06-01","hours":8,"pctComplete":0},{"recordId":"recjPNMnd1q8hARzX","id":"TF-6780-WO-015","name":"PL-3 Finishing","shopName":"PL-3 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-11","hours":16,"pctComplete":0},{"recordId":"recjf0evFIj9rqk9z","id":"TF-6783-WO-104","name":"NYC Trucking to Iron 23","shopName":"NYC Truck","project":"TF-6783","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-06-05","end":"2026-06-05","hours":8,"pctComplete":0},{"recordId":"reckPAoiuCBCy7wVv","id":"TF-6783-WO-025","name":"Stadium Seating Finishing","shopName":"Seating Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-30","hours":15,"pctComplete":0},{"recordId":"reckbmnWlghb4RUQH","id":"TF-6901-WO-031","name":"Install Trucking \u2013 Activation 5","shopName":"Truck in Act 5","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-10-02","end":"2026-10-02","hours":5,"pctComplete":0},{"recordId":"recknn8ahDKJcOHQA","id":"TF-2606-WO-002","name":"Scenesters finishing","shopName":"Scenesters finish","project":"TF-2606","deptCode":"FLOOR","routing":"Finishing","status":"Cancelled","bucket":"Excluded","start":"2026-03-28","end":"2026-03-31","hours":60,"pctComplete":0},{"recordId":"reckuNOM0mbPmlD2p","id":"TF-6783-WO-030","name":"Fuel Your Feed Drafting","shopName":"FYF Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-21","hours":16,"pctComplete":0},{"recordId":"recl3S0LWlJ8n0llh","id":"TF-6780-WO-039","name":"VT-5 Assembly","shopName":"VT-5 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-11","hours":2.5,"pctComplete":0},{"recordId":"recl7U8BK1Ug6gAEk","id":"TF-6780-WO-066","name":"Delivery Event 1 \u2014 Trucking (drive to NYPL)","shopName":"Trucking E1","project":"TF-6780","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Excluded","start":"2026-04-13","end":"2026-04-13","hours":3.5,"pctComplete":0},{"recordId":"reclbhkHUoV0ghAbI","id":"TF-2605-WO-002","name":"Counter drawings","shopName":"Counter dwgs","project":"TF-2605","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-03-28","end":"2026-04-01","hours":8,"pctComplete":0},{"recordId":"recld60nTeIoQiasu","id":"TF-6783-WO-141","name":"Page-Turn: Score Cards + LED Frames","shopName":"PT Frames","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-23","hours":0.5,"pctComplete":0},{"recordId":"reclgJ1yz4QhWcy1r","id":"TF-6783-WO-098","name":"Score Cards + LED Frames Lighting","shopName":"Frames Light","project":"TF-6783","deptCode":"LAVM","routing":"Lighting","status":"Pending","bucket":"Pending","start":"2026-05-29","end":"2026-05-31","hours":12,"pctComplete":0},{"recordId":"recliSQL94nEnCPZ2","id":"TF-6783-WO-049","name":"Cloak Lockers Drafting","shopName":"Cloak Locker Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-21","hours":4,"pctComplete":0},{"recordId":"recm17N5nnDRxbOr2","id":"TF-6901-WO-033","name":"Strike Trucking \u2013 Activation 5","shopName":"Truck out Act 5","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-10-02","end":"2026-10-02","hours":5,"pctComplete":0},{"recordId":"recmc99F9328Ijr6A","id":"TF-6780-WO-025","name":"PL-5 Finishing","shopName":"PL-5 Finishing","project":"TF-6780","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Excluded","start":"2026-04-09","end":"2026-04-12","hours":24,"pctComplete":0},{"recordId":"recmi6VZICGFJ7fP7","id":"TF-6783-WO-112","name":"Miami Bubble Carpentry","shopName":"Bubble Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-06-10","end":"2026-06-12","hours":12,"pctComplete":0},{"recordId":"recmwE8K0AnNVRjic","id":"TF-6783-WO-077","name":"Window Cubbies CNC","shopName":"Cubbies CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-23","hours":8,"pctComplete":0},{"recordId":"recmzD3XUmJ2KxRVg","id":"TF-6901-WO-028","name":"Strike Labor \u2013 Activation 4","shopName":"Strike Act 4","project":"TF-6901","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-09-02","end":"2026-09-02","hours":16,"pctComplete":0},{"recordId":"recnOmewPPwUVViy0","id":"TF-6901-WO-006","name":"Carpentry \u2013 Base","shopName":"Base carp","project":"TF-6901","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-17","hours":25,"pctComplete":0},{"recordId":"recoVQPjDaMTNrxxU","id":"TF-6783-WO-022","name":"Stadium Seating Drafting","shopName":"Seating Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-20","hours":16,"pctComplete":0},{"recordId":"recoaxECMYES6HawP","id":"TF-2605-WO-025","name":"Local Strike","shopName":"Strike","project":"TF-2605","deptCode":"FLOOR","routing":"Local Strike","status":"Cancelled","bucket":"Excluded","start":"2026-05-13","end":"2026-05-13","hours":8,"pctComplete":0},{"recordId":"recocZ8hpzuDJInjS","id":"TF-6901-WO-037","name":"Page-Turn (Gate 6) \u2014 Coach Purse Drafting","shopName":"Page-Turn \u2014 Coach Purse","project":"TF-6901","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-12","hours":0.5,"pctComplete":0},{"recordId":"recpBVMKqxqeUdm0S","id":"TF-6901-WO-034","name":"Handoff (Gate 3)","shopName":"Handoff","project":"TF-6901","deptCode":"PM","routing":"Handoff","status":"Complete","bucket":"Excluded","start":null,"end":"2026-04-15","hours":6,"pctComplete":0},{"recordId":"recpiaV2IZI6gsATT","id":"TF-6780-WO-038","name":"VT-5 Carpentry","shopName":"VT-5 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-10","hours":9.5,"pctComplete":0},{"recordId":"recpr0hk9rROTYD8V","id":"TF-6783-WO-106","name":"NYC Strike at Iron 23","shopName":"NYC Strike","project":"TF-6783","deptCode":"FLOOR","routing":"Local Strike","status":"Pending","bucket":"Pending","start":"2026-06-22","end":"2026-06-23","hours":40,"pctComplete":0},{"recordId":"recq0pVWJzJpSoqOu","id":"TF-6780-WO-044","name":"VT-6 Assembly (bonnet integration)","shopName":"VT-6 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-11","hours":4,"pctComplete":0},{"recordId":"recq2iuKAdf1ylPIL","id":"TF-6783-WO-103","name":"Back Wall Substrate Finishing","shopName":"Back Wall Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-25","hours":8,"pctComplete":0},{"recordId":"recqcFHiaZQVcfqIz","id":"TF-6780-WO-021","name":"PL-5 Drafting","shopName":"PL-5 Drafting","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-04-02","end":"2026-04-02","hours":2,"pctComplete":0},{"recordId":"recqwsIYcgxWJHzIl","id":"TF-2605-WO-020","name":"Hero Tower final assembly + integration","shopName":"Hero assy","project":"TF-2605","deptCode":"FLOOR","routing":"Assembly","status":"Cancelled","bucket":"Excluded","start":"2026-04-29","end":"2026-05-01","hours":12,"pctComplete":0},{"recordId":"recrAUVBpWdVTviS5","id":"TF-6783-WO-045","name":"Shirt Display CNC","shopName":"Shirt CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-27","hours":10,"pctComplete":0},{"recordId":"recrAjBIkBPeG8prl","id":"TF-6783-WO-052","name":"Cloak Lockers Finishing","shopName":"Cloak Lock Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-29","end":"2026-05-31","hours":30,"pctComplete":0},{"recordId":"recrJnzbk3al1kHhi","id":"TF-6783-WO-140","name":"Page-Turn: Ball Towers","shopName":"PT Ball Towers","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-24","hours":0.5,"pctComplete":0},{"recordId":"recrL0P7HrJs04c02","id":"TF-6901-WO-021","name":"Strike Trucking \u2013 Activation 2","shopName":"Truck out Act 2","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-07-07","end":"2026-07-07","hours":5,"pctComplete":0},{"recordId":"recrT2ubw7e5Zv0hz","id":"TF-6783-WO-017","name":"Product Display Wall Finishing","shopName":"Prod Wall Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-26","end":"2026-05-29","hours":26,"pctComplete":0},{"recordId":"recrTP4263QZKgEy4","id":"TF-6901-WO-003","name":"Massivit Print \u2013 Purse","shopName":"Purse 3D print","project":"TF-6901","deptCode":"DIGI","routing":"3D Print","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-18","hours":8.4,"pctComplete":0},{"recordId":"recrdHPuibGj01n7U","id":"TF-6780-WO-052","name":"VT-8 CNC","shopName":"VT-8 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":2,"pctComplete":0},{"recordId":"recrxL46Fquz5hL8V","id":"TF-6780-WO-003","name":"PL-1 Carpentry","shopName":"PL-1 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-07","hours":19,"pctComplete":0},{"recordId":"recs1OtMJPSNhaXh9","id":"TF-6783-WO-127","name":"Page-Turn: Fuel Your Feed","shopName":"PT FYF","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-31","hours":0.5,"pctComplete":0},{"recordId":"recs4KphToZtGBOwC","id":"TF-6783-WO-044","name":"Shirt Display Drafting","shopName":"Shirt Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-23","end":"2026-05-26","hours":16,"pctComplete":0},{"recordId":"recseT9M3dBsJhq3K","id":"TF-6780-WO-069","name":"Engineering Design \u2014 Build Drawings","shopName":"Eng Design","project":"TF-6780","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Excluded","start":"2026-03-21","end":"2026-03-27","hours":32,"pctComplete":0},{"recordId":"recsfb1XgNlLnIhtj","id":"TF-2606-WO-001","name":"Scenesters counter + walls carpentry","shopName":"Scenesters carp","project":"TF-2606","deptCode":"FLOOR","routing":"Carpentry","status":"Cancelled","bucket":"Excluded","start":"2026-03-21","end":"2026-03-25","hours":80,"pctComplete":0},{"recordId":"recspQhl1qab4WmDf","id":"TF-2605-WO-006","name":"Hero Tower curved face CNC","shopName":"Hero CNC","project":"TF-2605","deptCode":"DIGI","routing":"CNC","status":"Complete","bucket":"Excluded","start":"2026-03-28","end":"2026-04-02","hours":12,"pctComplete":0},{"recordId":"rectc3bzVVguAv1MO","id":"TF-6901-WO-019","name":"Install Trucking \u2013 Activation 2","shopName":"Truck in Act 2","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-07-07","end":"2026-07-07","hours":5,"pctComplete":0},{"recordId":"rectcnfmsXfyjjv9F","id":"TF-6780-WO-037","name":"VT-5 CNC","shopName":"VT-5 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":2,"pctComplete":0},{"recordId":"rectesszYTfPWQ1nm","id":"TF-6857-WO-021","name":"Plan Approval (Gate 4)","shopName":"Plan Approval","project":"TF-6857","deptCode":"PM","routing":"Plan Approval","status":"Complete","bucket":"Excluded","start":null,"end":"2026-05-04","hours":4,"pctComplete":0},{"recordId":"rectsEAjlzKuFXONa","id":"TF-6783-WO-043","name":"TV Wall Finishing","shopName":"TV Wall Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-02","end":"2026-06-05","hours":9,"pctComplete":0},{"recordId":"recu8SOljTZKqZBS8","id":"TF-6783-WO-128","name":"Page-Turn: Corner Wall","shopName":"PT Corner Wall","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-21","hours":0.5,"pctComplete":0},{"recordId":"recuCQX3lJotf623t","id":"TF-6783-WO-056","name":"Cloak Desk Finishing","shopName":"Cloak Desk Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-05-29","hours":6,"pctComplete":0},{"recordId":"recuEs07BjVmiQuJr","id":"TF-6783-WO-007","name":"Charm Wall Fleurs 3D Print","shopName":"Fleurs 3DP","project":"TF-6783","deptCode":"DIGI","routing":"3D Print","status":"Pending","bucket":"Pending","start":"2026-05-20","end":"2026-05-24","hours":45.6,"pctComplete":0},{"recordId":"recuPJzB7IOHigONc","id":"TF-2605-WO-001*9","name":"Hero Tower drawings","shopName":"Hero drawings","project":"TF-2605","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-03-21","end":"2026-03-27","hours":16,"pctComplete":0},{"recordId":"recuU2PBmeGF5XVgL","id":"TF-6857-WO-023","name":"Page-Turn (Gate 6) \u2014 Photocall Drafting","shopName":"Page-Turn \u2014 Photocall","project":"TF-6857","deptCode":"DRAFT","routing":"Page-Turn","status":"Active","bucket":"Active","start":null,"end":"2026-05-05","hours":0.5,"pctComplete":0},{"recordId":"recue4GnJJLptE43I","id":"TF-6783-WO-034","name":"Corner Wall Drafting","shopName":"Corner Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-19","end":"2026-05-19","hours":16,"pctComplete":0},{"recordId":"recuxwC1oyuQV2MZT","id":"TF-6780-WO-054","name":"VT-8 Assembly","shopName":"VT-8 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-11","hours":3,"pctComplete":0},{"recordId":"recv33ESmLKCg4FT8","id":"TF-6783-WO-119","name":"Kickoff (Gate 5)","shopName":"Kickoff","project":"TF-6783","deptCode":"PM","routing":"Kickoff","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-19","hours":2,"pctComplete":0},{"recordId":"recvJGx3PNyGD5KMc","id":"TF-2605-WO-014","name":"Counter finish + vinyl wrap","shopName":"Counter vinyl","project":"TF-2605","deptCode":"FLOOR","routing":"Finishing","status":"Cancelled","bucket":"Excluded","start":"2026-04-09","end":"2026-04-12","hours":12,"pctComplete":0},{"recordId":"recvO9Tf32YHTZ2vZ","id":"TF-6783-WO-076","name":"Window Cubbies Drafting","shopName":"Cubbies Draft","project":"TF-6783","deptCode":"DRAFT","routing":"Drafting","status":"Pending","bucket":"Pending","start":"2026-05-14","end":"2026-05-19","hours":10,"pctComplete":0},{"recordId":"recvgiFgNdcsTHCEu","id":"TF-2605-WO-004","name":"Lighting Truss drawings + DMX plan","shopName":"Truss dwgs","project":"TF-2605","deptCode":"DRAFT","routing":"Drafting","status":"Complete","bucket":"Excluded","start":"2026-03-28","end":"2026-04-10","hours":12,"pctComplete":0},{"recordId":"recvr00kzTgoegd0G","id":"TF-6780-WO-070","name":"Pack-Load Overhead (Carting & Disposal labor redistribution)","shopName":"Pack-Load Overhead","project":"TF-6780","deptCode":"FLOOR","routing":"Pack-Load","status":"Pending","bucket":"Excluded","start":"2026-04-09","end":"2026-04-16","hours":24.6,"pctComplete":0},{"recordId":"recvsibxj5z7IXOY5","id":"TF-2605-WO-015","name":"Wall panel fabric stretch","shopName":"Panel fabric","project":"TF-2605","deptCode":"FLOOR","routing":"Finishing","status":"Cancelled","bucket":"Excluded","start":"2026-04-11","end":"2026-04-17","hours":18,"pctComplete":0},{"recordId":"recvw8PivV3DPpHr6","id":"TF-6780-WO-057","name":"VT-9 CNC","shopName":"VT-9 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-04","end":"2026-04-04","hours":2,"pctComplete":0},{"recordId":"recw6nh9S4jjSt4QC","id":"TF-6783-WO-075","name":"Tech Booth Finishing","shopName":"TBooth Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-27","end":"2026-05-29","hours":8,"pctComplete":0},{"recordId":"recwJrcb6oOM9xIX0","id":"TF-6780-WO-049","name":"VT-7 Assembly","shopName":"VT-7 Assembly","project":"TF-6780","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Excluded","start":"2026-04-11","end":"2026-04-11","hours":5,"pctComplete":0},{"recordId":"recwaMI70miduL2TI","id":"TF-6783-WO-126","name":"Page-Turn: Column Shelf","shopName":"PT Col Shelf","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-20","hours":0.5,"pctComplete":0},{"recordId":"recwi1TdsnH4QCuQN","id":"TF-6783-WO-048","name":"Shirt Display Finishing","shopName":"Shirt Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-02","end":"2026-06-05","hours":40,"pctComplete":0},{"recordId":"recws2VNMkQALwDtU","id":"TF-6783-WO-156","name":"Sample: Wave Element","shopName":"Sample Wave","project":"TF-6783","deptCode":"FLOOR","routing":"Project Samples","status":"Pending","bucket":"Pending","start":"2026-05-15","end":"2026-05-16","hours":5,"pctComplete":0},{"recordId":"recwsDnlFbhVfiVLO","id":"TF-6780-WO-017","name":"PL-4 CNC","shopName":"PL-4 CNC","project":"TF-6780","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Excluded","start":"2026-04-03","end":"2026-04-03","hours":8,"pctComplete":0},{"recordId":"recx7xoDumSy6fGIa","id":"TF-6783-WO-142","name":"Page-Turn: Back Wall Substrate","shopName":"PT Back Wall","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-27","hours":0.5,"pctComplete":0},{"recordId":"recxCMazDA0xAL2TE","id":"TF-6783-WO-096","name":"Score Cards + LED Frames CNC","shopName":"Frames CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-25","end":"2026-05-25","hours":6,"pctComplete":0},{"recordId":"recxEaPyBgCpHxCg3","id":"TF-6783-WO-125","name":"Page-Turn: Stadium Seating","shopName":"PT Stadium","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-22","hours":0.5,"pctComplete":0},{"recordId":"recxR8kAojaKRGNuy","id":"TF-6783-WO-079","name":"Window Cubbies Finishing","shopName":"Cubbies Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-05-28","end":"2026-05-30","hours":12,"pctComplete":0},{"recordId":"recxSLKPau5OgxUij","id":"TF-6783-WO-036","name":"Corner Wall Carpentry","shopName":"Corner Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-21","end":"2026-05-23","hours":20,"pctComplete":0},{"recordId":"recxkaDIkFMxBs2r0","id":"TF-6901-WO-029","name":"Strike Trucking \u2013 Activation 4","shopName":"Truck out Act 4","project":"TF-6901","deptCode":"FLOOR","routing":"Trucking","status":"Pending","bucket":"Pending","start":"2026-09-02","end":"2026-09-02","hours":5,"pctComplete":0},{"recordId":"recxpnYavJqVPnoJr","id":"TF-6857-WO-010","name":"Fleurs Assembly","shopName":"Fleurs Assembly","project":"TF-6857","deptCode":"FLOOR","routing":"Assembly","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-22","hours":0.5,"pctComplete":0},{"recordId":"recy2YsEpTotDxDul","id":"TF-6783-WO-024","name":"Stadium Seating Carpentry + Upholstery","shopName":"Seating Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-22","end":"2026-05-26","hours":25,"pctComplete":0},{"recordId":"recySEDs2xlGRExxC","id":"TF-6780-WO-048","name":"VT-7 Carpentry","shopName":"VT-7 Carpentry","project":"TF-6780","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Excluded","start":"2026-04-05","end":"2026-04-10","hours":19,"pctComplete":0},{"recordId":"recysXiYtOxAhjUJz","id":"TF-2605-WO-026","name":"Coach Holiday PM time (Colin)","shopName":"Coach PM","project":"TF-2605","deptCode":"PM","routing":"PM Time","status":"Cancelled","bucket":"Excluded","start":"2026-03-25","end":"2026-05-13","hours":60,"pctComplete":0},{"recordId":"recz6HnoCrNI73mDE","id":"TF-6783-WO-121","name":"Page-Turn: Charm Wall Fleurs","shopName":"PT Charm Fleurs","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-23","hours":0.5,"pctComplete":0},{"recordId":"recz9ClmBLCgOsDqP","id":"TF-6857-WO-025","name":"Page-Turn (Gate 6) \u2014 Engineering Design (project-level)","shopName":"Page-Turn \u2014 Eng Design","project":"TF-6857","deptCode":"DRAFT","routing":"Page-Turn","status":"Active","bucket":"Active","start":null,"end":"2026-05-07","hours":0.5,"pctComplete":0},{"recordId":"reczA8Hb1jSqijujA","id":"TF-6783-WO-032","name":"Fuel Your Feed Carpentry","shopName":"FYF Carp","project":"TF-6783","deptCode":"FLOOR","routing":"Carpentry","status":"Pending","bucket":"Pending","start":"2026-05-24","end":"2026-05-27","hours":65,"pctComplete":0},{"recordId":"reczNP9CVLxqYP7bA","id":"TF-6783-WO-134","name":"Page-Turn: Ball Wall","shopName":"PT Ball Wall","project":"TF-6783","deptCode":"DRAFT","routing":"Page-Turn","status":"Pending","bucket":"Pending","start":null,"end":"2026-05-30","hours":0.5,"pctComplete":0},{"recordId":"reczTfUhkBmjpltCa","id":"TF-6783-WO-019","name":"Aux Desk CNC","shopName":"Aux Desk CNC","project":"TF-6783","deptCode":"DIGI","routing":"CNC","status":"Pending","bucket":"Pending","start":"2026-05-16","end":"2026-05-16","hours":3,"pctComplete":0},{"recordId":"reczWdQCZyYO2yHXq","id":"TF-6783-WO-099","name":"Score Cards + LED Frames Finishing","shopName":"Frames Fin","project":"TF-6783","deptCode":"FLOOR","routing":"Finishing","status":"Pending","bucket":"Pending","start":"2026-06-02","end":"2026-06-03","hours":12,"pctComplete":0}]
+};
+
+// ===========================================================================
+// STATE
+// ===========================================================================
+const STATE = {
+  data: null,          // { departments, projects, workOrders, asOf }
+  rangeDays: 28,
+  anchor: null,
+  view: 'heatmap',
+  expandedProjects: new Set(),
+  detail: 'group',  // 'group' (default) or 'routing'
+  woSort: { field: 'start', dir: 'asc' },
+  jobSort: { field: 'installDate', dir: 'asc' }
+};
+
+// ===========================================================================
+// HELPERS
+// ===========================================================================
+const DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function ymd(d){return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}
+function parseYMD(s){return new Date(s+'T00:00:00Z');}
+function addDays(d,n){const r=new Date(d.getTime());r.setUTCDate(r.getUTCDate()+n);return r;}
+function isWeekend(d){const x=d.getUTCDay();return x===0||x===6;}
+function isMonday(d){return d.getUTCDay()===1;}
+function daysBetween(s,e){const arr=[];let c=new Date(s.getTime());while(c<=e){arr.push(new Date(c.getTime()));c=addDays(c,1);}return arr;}
+function todayUTC(){const n=new Date();return new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()));}
+function fmtFullDate(d){return DOWS[d.getUTCDay()]+', '+MONTHS[d.getUTCMonth()]+' '+d.getUTCDate()+', '+d.getUTCFullYear();}
+function fmtShortDate(s){if(!s)return '—';const d=parseYMD(s);return MONTHS[d.getUTCMonth()]+' '+d.getUTCDate();}
+function escapeHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtHrs(n){if(n<0.001)return '';return n>=10?String(Math.round(n)):(Math.round(n*10)/10).toFixed(1);}
+function fmtClock(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+
+function tierFor(hours, ceiling){
+  if (hours <= 0.001) return 'empty';
+  if (ceiling <= 0) return 'empty';
+  const u = hours / ceiling;
+  if (u > 1.50) return 'redhot';
+  if (u > 1.00) return 'red';
+  if (u > 0.80) return 'amber';
+  return 'green';
+}
+
+function deptByCode(code){return STATE.data?.departments.find(d=>d.code===code);}
+function projByCode(code){return STATE.data?.projects.find(p=>p.code===code);}
+function projByRecId(id){return STATE.data?.projects.find(p=>p.recordId===id);}
+
+// ===========================================================================
+// ALLOCATION — distribute remaining hours across working days
+// ===========================================================================
+function buildAllocation() {
+  // Returns Map<projectCode, Map<routingKey, Map<dayYMD, {hours, wos[]}>>>
+  const byProjRtDay = new Map();
+  if (!STATE.data) return byProjRtDay;
+  const today = todayUTC();
+
+  for (const wo of STATE.data.workOrders) {
+    if (wo.bucket !== 'Active' && wo.bucket !== 'Pending') continue;
+    if (!wo.hours) continue;
+    // Be forgiving about missing dates: if only one is set, use it as a single-day anchor.
+    if (!wo.start && !wo.end) continue;
+    if (!wo.start) wo.start = wo.end;
+    if (!wo.end) wo.end = wo.start;
+
+    const sd = parseYMD(wo.start), ed = parseYMD(wo.end);
+    if (ed < sd) continue;
+
+    const pct = Math.max(0, Math.min(1, Number(wo.pctComplete) || 0));
+    const remaining = wo.hours * (1 - pct);
+    if (remaining <= 0.001) continue;
+
+    let days;
+    if (ed < today) {
+      // Overdue — pile remaining onto today (or the end date if today is somehow invalid)
+      days = [new Date(today.getTime())];
+    } else {
+      const winStart = (sd < today) ? today : sd;
+      days = daysBetween(winStart, ed);
+    }
+    if (!days.length) continue;
+
+    const hpd = remaining / days.length;
+    const rtKey = wo.routing || 'Other';
+    const projCode = wo.project || 'UNKNOWN';
+
+    if (!byProjRtDay.has(projCode)) byProjRtDay.set(projCode, new Map());
+    const projMap = byProjRtDay.get(projCode);
+    if (!projMap.has(rtKey)) projMap.set(rtKey, new Map());
+    const rtMap = projMap.get(rtKey);
+
+    for (const d of days) {
+      const k = ymd(d);
+      if (!rtMap.has(k)) rtMap.set(k, { hours: 0, wos: [], deptCode: wo.deptCode });
+      const slot = rtMap.get(k);
+      slot.hours += hpd;
+      slot.wos.push({ id: wo.id, name: wo.shopName || wo.name, hours: hpd, recordId: wo.recordId, status: wo.status, pctComplete: pct, routing: wo.routing });
+    }
+  }
+  return byProjRtDay;
+}
+
+// Aggregators
+function aggProjDay(alloc, projCode, day) {
+  let total = 0; const wos = [];
+  const projMap = alloc.get(projCode);
+  if (!projMap) return { hours: 0, wos: [] };
+  for (const [, rtMap] of projMap) {
+    const slot = rtMap.get(day);
+    if (!slot) continue;
+    total += slot.hours;
+    for (const w of slot.wos) wos.push(w);
+  }
+  return { hours: total, wos };
+}
+
+function aggRoutingDay(alloc, projCode, routing, day) {
+  const projMap = alloc.get(projCode);
+  if (!projMap) return { hours: 0, wos: [] };
+  const rtMap = projMap.get(routing);
+  if (!rtMap) return { hours: 0, wos: [] };
+  return rtMap.get(day) || { hours: 0, wos: [] };
+}
+
+function aggDeptDay(alloc, deptCode, day) {
+  let total = 0; const wos = [];
+  for (const [, projMap] of alloc) {
+    for (const [routing, rtMap] of projMap) {
+      const slot = rtMap.get(day);
+      if (!slot) continue;
+      if (slot.deptCode !== deptCode) continue;
+      total += slot.hours;
+      for (const w of slot.wos) wos.push(w);
+    }
+  }
+  return { hours: total, wos };
+}
+
+function aggInstallDay(alloc, day) {
+  let total = 0; const wos = [];
+  for (const [, projMap] of alloc) {
+    for (const [routing, rtMap] of projMap) {
+      if (routingToGroup(routing) !== 'INSTALL') continue;
+      const slot = rtMap.get(day);
+      if (!slot) continue;
+      total += slot.hours;
+      for (const w of slot.wos) wos.push(w);
+    }
+  }
+  return { hours: total, wos };
+}
+
+function aggAllDay(alloc, day) {
+  let total = 0;
+  for (const [, projMap] of alloc) {
+    for (const [, rtMap] of projMap) {
+      const slot = rtMap.get(day);
+      if (slot) total += slot.hours;
+    }
+  }
+  return total;
+}
+
+function projTotalHours(alloc, projCode) {
+  let total = 0;
+  const projMap = alloc.get(projCode);
+  if (!projMap) return 0;
+  for (const [, rtMap] of projMap) for (const [, slot] of rtMap) total += slot.hours;
+  return total;
+}
+
+// ===========================================================================
+// COLUMNS
+// ===========================================================================
+function getColumns() {
+  const cols = [];
+  const anchor = STATE.anchor || todayUTC();
+  let cursor = new Date(anchor.getTime());
+  for (let i = 0; i < STATE.rangeDays; i++) {
+    cols.push({ key: ymd(cursor), date: new Date(cursor.getTime()), weekend: isWeekend(cursor), monday: isMonday(cursor) });
+    cursor = addDays(cursor, 1);
+  }
+  return cols;
+}
+
+// ===========================================================================
+// RENDER — top-level dispatch
+// ===========================================================================
+function render() {
+  renderHeaderClock();
+  renderFetchStamp();
+  if (!STATE.data || !STATE.data.workOrders || !STATE.data.workOrders.length) {
+    document.getElementById('hm-card').style.display = 'none';
+    document.getElementById('hm-empty').style.display = 'block';
+    document.getElementById('kpis').innerHTML = emptyKpis();
+    document.getElementById('ceil-bar').innerHTML = '<span class="ceil-label">No data loaded</span>';
+    document.getElementById('ceil-count').textContent = '— depts';
+    document.getElementById('util-grid').innerHTML = '<div style="color:var(--dim);font-size:10px;padding:8px;">No data loaded.</div>';
+    document.getElementById('jobs-tbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--dim);">No data — click Refresh to load.</td></tr>';
+    document.getElementById('wo-tbody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--dim);">No data — click Refresh to load.</td></tr>';
+    return;
+  }
+  document.getElementById('hm-card').style.display = '';
+  document.getElementById('hm-empty').style.display = 'none';
+
+  const alloc = buildAllocation();
+  renderKPIs(alloc);
+  renderCeilings();
+  renderDeptUtil(alloc);
+  renderHeatMap(alloc);
+  renderDataIssues();
+  renderJobs(alloc);
+  populateWOFilters();
+  renderWOs();
+}
+
+function renderHeaderClock() {
+  // No-op placeholder; fetch stamp covers freshness.
+}
+
+function renderFetchStamp() {
+  const el = document.getElementById('fetch-stamp');
+  if (!STATE.data || !STATE.data.fetchedAt) {
+    el.textContent = '— never —';
+    el.className = 'val empty';
+    return;
+  }
+  const f = new Date(STATE.data.fetchedAt);
+  if (STATE.data.isSnapshot) {
+    el.textContent = 'Snapshot · ' + f.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    el.className = 'val stale';
+    el.title = 'Embedded snapshot from ' + f.toLocaleString() + ' — click Refresh to pull live';
+    return;
+  }
+  const now = new Date();
+  const mins = Math.floor((now - f) / 60000);
+  let stamp;
+  if (mins < 1) stamp = 'just now';
+  else if (mins < 60) stamp = mins + ' min ago';
+  else if (mins < 1440) stamp = Math.floor(mins/60) + 'h ' + (mins%60) + 'm ago';
+  else stamp = f.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' · ' + fmtClock(f);
+  const ts = fmtClock(f) + ' · ' + stamp;
+  el.textContent = ts;
+  el.className = 'val' + (mins > 60 ? ' stale' : '');
+  el.title = 'Fetched ' + f.toLocaleString();
+}
+
+function emptyKpis() {
+  const labels = ['Active Jobs','Hours Scheduled','Shop Over-Cap Days','Dept Over-Cap Days','Peak Utilization','Overhire Hours'];
+  return labels.map(l => `<div class="kpi"><div class="kl">${l}</div><div class="kv" style="color:var(--dim);">—</div><div class="ks">no data</div></div>`).join('');
+}
+
+// ===========================================================================
+// KPIs
+// ===========================================================================
+function renderKPIs(alloc) {
+  const today = todayUTC();
+  const horizonEnd = addDays(today, 28);
+  let shopOverDays = 0, deptOverDays = 0, totalOverHrs = 0;
+  let peakUtil = 0, peakLabel = '—';
+  const shopCeil = STATE.data.departments.reduce((s,d)=>s+d.weeklyCapacity,0) / 5;
+
+  let cursor = new Date(today.getTime());
+  while (cursor < horizonEnd) {
+    const k = ymd(cursor);
+    const shopHrs = aggAllDay(alloc, k);
+    if (shopHrs > shopCeil) { shopOverDays++; totalOverHrs += shopHrs - shopCeil; }
+    for (const dept of STATE.data.departments) {
+      const ceil = dept.weeklyCapacity / 5;
+      const slot = aggDeptDay(alloc, dept.code, k);
+      const u = ceil > 0 ? slot.hours / ceil : 0;
+      if (u > peakUtil) { peakUtil = u; peakLabel = dept.name + ' · ' + MONTHS[cursor.getUTCMonth()] + ' ' + cursor.getUTCDate(); }
+      if (slot.hours > ceil) deptOverDays++;
+    }
+    cursor = addDays(cursor, 1);
+  }
+
+  let totalHrs = 0;
+  const projsInWindow = new Set();
+  cursor = new Date(today.getTime());
+  while (cursor < horizonEnd) {
+    const k = ymd(cursor);
+    totalHrs += aggAllDay(alloc, k);
+    for (const proj of STATE.data.projects) {
+      const slot = aggProjDay(alloc, proj.code, k);
+      if (slot.hours > 0) projsInWindow.add(proj.code);
+    }
+    cursor = addDays(cursor, 1);
+  }
+
+  const pct = n => Math.round(n*100) + '%';
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="kl">Active Jobs</div><div class="kv">${projsInWindow.size}</div><div class="ks">in next 4 wk window</div></div>
+    <div class="kpi"><div class="kl">Hours Scheduled</div><div class="kv warn">${fmtHrs(totalHrs)||'0'}</div><div class="ks">labor hrs · next 4 wk</div></div>
+    <div class="kpi"><div class="kl">Shop Over-Cap Days</div><div class="kv ${shopOverDays?'hot':'ok'}">${shopOverDays}</div><div class="ks">daily load &gt; shop ceiling</div></div>
+    <div class="kpi"><div class="kl">Dept Over-Cap Days</div><div class="kv ${deptOverDays?'hot':'ok'}">${deptOverDays}</div><div class="ks">any dept &gt; its ceiling</div></div>
+    <div class="kpi"><div class="kl">Peak Utilization</div><div class="kv ${peakUtil>1?'hot':peakUtil>0.8?'warn':'ok'}">${pct(peakUtil)}</div><div class="ks">${peakLabel}</div></div>
+    <div class="kpi"><div class="kl">Overhire Hours</div><div class="kv ${totalOverHrs?'warn':'ok'}">${fmtHrs(totalOverHrs)||'0'}</div><div class="ks">sum of daily overflow</div></div>
+  `;
+}
+
+// ===========================================================================
+// CEILINGS BAR
+// ===========================================================================
+function renderDataIssues() {
+  // Scan Active/Pending WOs for data hygiene issues
+  const issues = [];
+  for (const wo of STATE.data.workOrders) {
+    if (wo.bucket !== 'Active' && wo.bucket !== 'Pending') continue;
+    const flags = [];
+    if (!wo.start && !wo.end) flags.push('No dates');
+    else if (!wo.start) flags.push('Missing start');
+    else if (!wo.end) flags.push('Missing end');
+    if (!wo.hours || wo.hours <= 0) flags.push('Zero hours');
+    if (!wo.deptCode) flags.push('No department');
+    if (!wo.routing || wo.routing === 'Other') flags.push('Routing = Other');
+    if (wo.start && wo.end && wo.start > wo.end) flags.push('End before start');
+    if (flags.length) issues.push({ wo, flags });
+  }
+  const panel = document.getElementById('data-issues-panel');
+  if (!issues.length) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'block';
+  document.getElementById('issues-count').textContent = issues.length + ' WO' + (issues.length===1?'':'s');
+  document.getElementById('issues-list').innerHTML = issues
+    .sort((a,b) => a.wo.project.localeCompare(b.wo.project) || a.wo.id.localeCompare(b.wo.id))
+    .map(({wo, flags}) => `
+      <li class="issue-row">
+        <span class="iid">${escapeHtml(wo.id)}</span>
+        <span class="iproj">${escapeHtml(wo.project)}</span>
+        <span class="iname">${escapeHtml(wo.shopName || wo.name || '—')} <span style="color:var(--dim);">· ${escapeHtml(wo.routing||'')} · ${escapeHtml(wo.deptCode||'')}</span></span>
+        <span class="iflag">${flags.join(' · ')}</span>
+      </li>
+    `).join('');
+
+  // Wire click-to-toggle (idempotent — replace handler each render)
+  const hdr = document.getElementById('issues-header');
+  hdr.onclick = () => {
+    const body = document.getElementById('issues-body');
+    const caret = document.getElementById('issues-caret');
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    caret.textContent = open ? '▶' : '▼';
+  };
+}
+
+function renderDeptUtil(alloc) {
+  // Department utilization over the currently-displayed heat map window.
+  // Demand = sum of allocated hours per dept across the window.
+  // Capacity = weeklyCapacity prorated to the window length (rangeDays / 7).
+  const cols = getColumns();
+  const weeks = STATE.rangeDays / 7;
+  const rows = STATE.data.departments.map(dept => {
+    let demand = 0;
+    for (const c of cols) demand += aggDeptDay(alloc, dept.code, c.key).hours;
+    const capacity = dept.weeklyCapacity * weeks;
+    const util = capacity > 0 ? demand / capacity : 0;
+    return { dept, demand, capacity, util };
+  }).filter(r => r.demand > 0.001)
+    .sort((a,b) => b.util - a.util);
+
+  const windowLabel = (STATE.rangeDays/7).toFixed(STATE.rangeDays===91?1:0).replace('.0','') + ' wk';
+  document.getElementById('util-window').textContent = windowLabel;
+
+  const grid = document.getElementById('util-grid');
+  if (!rows.length) {
+    grid.innerHTML = '<div style="color:var(--dim);font-size:10px;padding:8px;">No department demand in this window.</div>';
+    return;
+  }
+  grid.innerHTML = rows.map(({dept, demand, capacity, util}) => {
+    const tier = util > 1.5 ? 'redhot' : util > 1.0 ? 'red' : util > 0.8 ? 'amber' : 'green';
+    const fillPct = Math.min(100, util * 100);
+    return `<div class="util-tile">
+      <div class="ut-top">
+        <span class="ut-name">${escapeHtml(dept.name)}</span>
+        <span class="ut-pct ${tier}">${Math.round(util*100)}%</span>
+      </div>
+      <div class="ut-track"><div class="ut-fill ${tier}" style="width:${fillPct}%;"></div></div>
+      <div class="ut-meta">${fmtHrs(demand)}h demand · ${fmtHrs(capacity)}h cap · ${windowLabel}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCeilings() {
+  const depts = STATE.data.departments;
+  const total = depts.reduce((s,d)=>s+d.weeklyCapacity,0);
+  const items = depts.map(d => {
+    const perDay = d.weeklyCapacity / 5;
+    return `<span class="ceil-item"><span class="name">${escapeHtml(d.code)}</span><span class="val">${fmtHrs(perDay)}</span><span class="unit">h/day</span></span>`;
+  }).join('<span class="ceil-divider"></span>');
+  const allDay = total / 5;
+  document.getElementById('ceil-bar').innerHTML =
+    `<span class="ceil-label">Per-day</span>` + items +
+    `<span class="ceil-divider"></span>` +
+    `<span class="ceil-item"><span class="name" style="color:var(--amber);">Shop</span><span class="val" style="color:var(--amber);">${fmtHrs(allDay)}</span><span class="unit">h/day</span></span>`;
+  document.getElementById('ceil-count').textContent = depts.length + ' depts';
+}
+
+// ===========================================================================
+// HEAT MAP
+// ===========================================================================
+function renderHeatMap(alloc) {
+  const cols = getColumns();
+  document.getElementById('window-tag').textContent = (STATE.rangeDays/7).toFixed(STATE.rangeDays===91?1:0).replace('.0','') + ' wk';
+  renderDeptUtil(alloc);  // keep utilization strip in sync with the window
+  const tbl = document.getElementById('hm');
+  tbl.innerHTML = '';
+  const todayK = ymd(todayUTC());
+
+  // --- Header ---
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  const th0 = document.createElement('th');
+  th0.className = 'col-job';
+  th0.innerHTML = '<div style="font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;">Job · ' + (STATE.detail==='routing'?'Routing':'Group') + '</div>';
+  hr.appendChild(th0);
+  const thCap = document.createElement('th');
+  thCap.className = 'col-cap';
+  thCap.innerHTML = '<div style="font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;">Cap (h/day)</div>';
+  hr.appendChild(thCap);
+  for (const c of cols) {
+    const th = document.createElement('th');
+    th.className = (c.weekend?'weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+    th.innerHTML = '<div class="hcol"><span class="dow">'+DOWS[c.date.getUTCDay()]+'</span><span class="day">'+c.date.getUTCDate()+'</span><span class="mo">'+MONTHS[c.date.getUTCMonth()]+'</span></div>';
+    hr.appendChild(th);
+  }
+  thead.appendChild(hr);
+  tbl.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  // --- Project rows ---
+  const sortedProjects = [...STATE.data.projects]
+    .map(p => ({ ...p, _total: projTotalHours(alloc, p.code) }))
+    .filter(p => p._total > 0.001)
+    .sort((a,b) => b._total - a._total);
+
+  for (const proj of sortedProjects) {
+    const expanded = STATE.expandedProjects.has(proj.code);
+
+    // Project row
+    const projRow = document.createElement('tr');
+    projRow.className = 'proj';
+    const jobTd = document.createElement('td');
+    jobTd.className = 'col-job';
+    jobTd.innerHTML =
+      '<div class="proj-line">' +
+        '<span class="proj-toggle' + (expanded?' open':'') + '">' + (expanded?'−':'+') + '</span>' +
+        '<div>' +
+          '<span class="proj-num">'+escapeHtml(proj.code)+'</span> <span class="proj-name">'+escapeHtml(proj.shopName||proj.name)+'</span>' +
+          '<div class="proj-meta">'+escapeHtml(proj.client||'')+' · '+escapeHtml(proj.status||'')+(proj.installDate?' · install '+fmtShortDate(proj.installDate):'')+' · '+Math.round(proj._total)+' h sched</div>' +
+        '</div>' +
+      '</div>';
+    jobTd.style.cursor = 'pointer';
+    jobTd.onclick = () => {
+      if (STATE.expandedProjects.has(proj.code)) STATE.expandedProjects.delete(proj.code);
+      else STATE.expandedProjects.add(proj.code);
+      renderHeatMap(buildAllocation());
+    };
+    projRow.appendChild(jobTd);
+    const capTd = document.createElement('td');
+    capTd.className = 'col-cap';
+    capTd.textContent = Math.round(proj._total) + 'h';
+    projRow.appendChild(capTd);
+    for (const c of cols) {
+      const cell = document.createElement('td');
+      const slot = aggProjDay(alloc, proj.code, c.key);
+      const shopCeil = STATE.data.departments.reduce((s,d)=>s+d.weeklyCapacity,0) / 5;
+      const klass = (slot.hours<0.001) ? (c.weekend?'weekend':'empty') : tierFor(slot.hours, shopCeil);
+      cell.className = 'cell ' + klass + (c.weekend?' weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+      if (slot.hours > 0.001) cell.textContent = fmtHrs(slot.hours);
+      attachHover(cell, slot, c, escapeHtml(proj.shopName||proj.name) + ' · TOTAL', shopCeil);
+      projRow.appendChild(cell);
+    }
+    tbody.appendChild(projRow);
+
+    // Expanded sub-rows — groups by default, individual routings when STATE.detail='routing'
+    if (expanded) {
+      const projMap = alloc.get(proj.code) || new Map();
+
+      if (STATE.detail === 'routing') {
+        // Individual routings, install last, then by hours desc
+        const routings = [...projMap.keys()].sort((a,b) => {
+          const aIns = routingToGroup(a) === 'INSTALL';
+          const bIns = routingToGroup(b) === 'INSTALL';
+          if (aIns !== bIns) return aIns ? 1 : -1;
+          return totalForRouting(projMap.get(b)) - totalForRouting(projMap.get(a));
+        });
+        for (const routing of routings) {
+          const rtMap = projMap.get(routing);
+          const firstSlot = rtMap.values().next().value;
+          const dept = deptByCode(firstSlot?.deptCode || '');
+          const isInstall = routingToGroup(routing) === 'INSTALL';
+          const color = ROUTING_COLORS[routing] || '#888';
+          renderSubRow(tbody, cols, todayK,
+            { label: routing, color, deptTag: dept?.code, slotsForCol: c => rtMap.get(c.key), isInstall, ceil: dept ? dept.weeklyCapacity/5 : null, ctx: proj });
+        }
+      } else {
+        // Group sub-rows — aggregate routings within each group
+        for (const groupKey of GROUP_ORDER) {
+          // Build merged map for this group's routings within this project
+          const merged = new Map();
+          let totalForGroup = 0;
+          for (const [rt, rtMap] of projMap) {
+            if (routingToGroup(rt) !== groupKey) continue;
+            for (const [day, slot] of rtMap) {
+              if (!merged.has(day)) merged.set(day, { hours: 0, wos: [], deptCode: slot.deptCode });
+              const m = merged.get(day);
+              m.hours += slot.hours;
+              for (const w of slot.wos) m.wos.push(w);
+              totalForGroup += slot.hours;
+            }
+          }
+          if (merged.size === 0 || totalForGroup < 0.001) continue;
+          const meta = GROUP_META[groupKey];
+          const deptForCap = meta.deptCode ? deptByCode(meta.deptCode) : null;
+          const isInstall = groupKey === 'INSTALL';
+          renderSubRow(tbody, cols, todayK,
+            { label: meta.label, color: meta.color, deptTag: meta.deptCode, slotsForCol: c => merged.get(c.key), isInstall, ceil: deptForCap ? deptForCap.weeklyCapacity/5 : null, ctx: proj });
+        }
+      }
+    }
+  }
+
+  // --- Section break ---
+  const breakRow = document.createElement('tr');
+  breakRow.className = 'section-break';
+  const breakTd = document.createElement('td');
+  breakTd.colSpan = 2 + cols.length;
+  breakTd.textContent = '— Across All Jobs · Department Totals —';
+  breakRow.appendChild(breakTd);
+  tbody.appendChild(breakRow);
+
+  // --- Dept totals across all jobs ---
+  for (const dept of STATE.data.departments) {
+    let any = false;
+    for (const c of cols) {
+      const s = aggDeptDay(alloc, dept.code, c.key);
+      if (s.hours > 0) { any = true; break; }
+    }
+    if (!any) continue;
+
+    const tr = document.createElement('tr');
+    tr.className = 'dept-total';
+    const j = document.createElement('td');
+    j.className = 'col-job';
+    j.innerHTML = '<span class="rt-name" style="color:var(--bright);">'+escapeHtml(dept.name)+'</span><span class="dept-tag">All Jobs</span>';
+    tr.appendChild(j);
+    const cp = document.createElement('td');
+    cp.className = 'col-cap';
+    cp.textContent = fmtHrs(dept.weeklyCapacity/5);
+    tr.appendChild(cp);
+    for (const c of cols) {
+      const slot = aggDeptDay(alloc, dept.code, c.key);
+      const ceil = dept.weeklyCapacity / 5;
+      const cell = document.createElement('td');
+      const klass = (!slot || slot.hours<0.001) ? (c.weekend?'weekend':'empty') : tierFor(slot.hours, ceil);
+      cell.className = 'cell ' + klass + (c.weekend?' weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+      if (slot.hours > 0.001) cell.textContent = fmtHrs(slot.hours);
+      attachHover(cell, slot, c, escapeHtml(dept.name) + ' · ALL JOBS', ceil);
+      tr.appendChild(cell);
+    }
+    tbody.appendChild(tr);
+  }
+
+  // --- Install / Strike row (cross-cutting) ---
+  let anyInstall = false;
+  for (const c of cols) {
+    const s = aggInstallDay(alloc, c.key);
+    if (s.hours > 0) { anyInstall = true; break; }
+  }
+  if (anyInstall) {
+    const tr = document.createElement('tr');
+    tr.className = 'dept-total';
+    const j = document.createElement('td');
+    j.className = 'col-job';
+    j.innerHTML = '<span class="rt-name" style="color:var(--orange);">Install / Strike / Pack</span><span class="dept-tag" style="background:rgba(224,112,0,.15);color:var(--orange);border-color:var(--orange-lo);">All Jobs</span>';
+    tr.appendChild(j);
+    const cp = document.createElement('td');
+    cp.className = 'col-cap';
+    cp.textContent = '—';
+    tr.appendChild(cp);
+    for (const c of cols) {
+      const slot = aggInstallDay(alloc, c.key);
+      const cell = document.createElement('td');
+      const klass = (!slot || slot.hours<0.001) ? (c.weekend?'weekend':'empty') : 'install';
+      cell.className = 'cell ' + klass + (c.weekend?' weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+      if (slot.hours > 0.001) cell.textContent = fmtHrs(slot.hours);
+      attachHover(cell, slot, c, 'Install / Strike · ALL JOBS', null);
+      tr.appendChild(cell);
+    }
+    tbody.appendChild(tr);
+  }
+
+  // --- Shop Total row ---
+  const totalCeil = STATE.data.departments.reduce((s,d)=>s+d.weeklyCapacity,0)/5;
+  const totalRow = document.createElement('tr');
+  totalRow.className = 'total';
+  const tj = document.createElement('td');
+  tj.className = 'col-job';
+  tj.textContent = 'Shop Total';
+  totalRow.appendChild(tj);
+  const tc = document.createElement('td');
+  tc.className = 'col-cap';
+  tc.textContent = fmtHrs(totalCeil);
+  totalRow.appendChild(tc);
+  for (const c of cols) {
+    const hours = aggAllDay(alloc, c.key);
+    const klass = (hours<0.001) ? (c.weekend?'weekend':'empty') : tierFor(hours, totalCeil);
+    const cell = document.createElement('td');
+    cell.className = 'cell ' + klass + (c.weekend?' weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+    if (hours > 0.001) cell.textContent = fmtHrs(hours);
+    const wos = [];
+    for (const [, projMap] of alloc) {
+      for (const [, rtMap] of projMap) {
+        const slot = rtMap.get(c.key);
+        if (slot) for (const w of slot.wos) wos.push(w);
+      }
+    }
+    attachHover(cell, { hours, wos }, c, 'SHOP TOTAL', totalCeil);
+    totalRow.appendChild(cell);
+  }
+  tbody.appendChild(totalRow);
+
+  // --- Overhire row (production depts only, PM/EST/EXEC/ACC excluded) ---
+  const productionDepts = STATE.data.departments.filter(d => !NO_OVERHIRE_DEPTS.has(d.code));
+  const productionCeil = productionDepts.reduce((s,d)=>s+d.weeklyCapacity,0)/5;
+  const ohRow = document.createElement('tr');
+  ohRow.className = 'overhire';
+  const oj = document.createElement('td');
+  oj.className = 'col-job';
+  const excluded = [...NO_OVERHIRE_DEPTS].join(', ');
+  oj.innerHTML = 'Overhire Needed<span class="sub">production floor hourly · '+excluded+' excluded (salaried)</span>';
+  ohRow.appendChild(oj);
+  const ocp = document.createElement('td');
+  ocp.className = 'col-cap';
+  ocp.innerHTML = fmtHrs(productionCeil) + '<span class="sub">prod cap</span>';
+  ohRow.appendChild(ocp);
+
+  for (const c of cols) {
+    let deficit = 0;
+    const breakdown = [];
+    for (const dept of productionDepts) {
+      const ceil = dept.weeklyCapacity / 5;
+      const dem = aggDeptDay(alloc, dept.code, c.key).hours;
+      const shortage = Math.max(0, dem - ceil);
+      if (shortage > 0.05) {
+        deficit += shortage;
+        breakdown.push({ id: '', name: dept.name, hours: shortage });
+      }
+    }
+    const cell = document.createElement('td');
+    const isWknd = c.weekend;
+    let klass;
+    if (deficit > 0.05) klass = 'deficit';
+    else klass = isWknd ? 'weekend' : 'empty';
+    cell.className = 'cell ' + klass + (isWknd?' weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+    if (deficit > 0.05) cell.textContent = '+' + fmtHrs(deficit);
+    else if (!isWknd) cell.textContent = '·';
+    attachHover(cell, { hours: deficit, wos: breakdown }, c,
+      'OVERHIRE NEEDED' + (deficit>0?' · per-dept shortage':' · no shortage'), null);
+    ohRow.appendChild(cell);
+  }
+  tbody.appendChild(ohRow);
+
+  tbl.appendChild(tbody);
+}
+
+function totalForRouting(rtMap) {
+  if (!rtMap) return 0;
+  let t = 0;
+  for (const [, slot] of rtMap) t += slot.hours;
+  return t;
+}
+
+// Render a sub-row (routing or group) under an expanded project
+function renderSubRow(tbody, cols, todayK, opts) {
+  // opts: { label, color, deptTag, slotsForCol, isInstall, ceil, ctx }
+  const tr = document.createElement('tr');
+  tr.className = 'rt-sub';
+  const sj = document.createElement('td');
+  sj.className = 'col-job';
+  sj.innerHTML =
+    '<span class="rt-color" style="background:'+opts.color+';"></span>' +
+    '<span class="rt-name" style="color:'+opts.color+';">' + escapeHtml(opts.label) + '</span>' +
+    (opts.deptTag ? '<span class="rt-dept">→ '+escapeHtml(opts.deptTag)+'</span>' : '');
+  tr.appendChild(sj);
+
+  // Cap column: show parent dept tag instead of duplicating ceiling number —
+  // makes it clear multiple sub-rows share one dept's pool, not each its own.
+  const sc = document.createElement('td');
+  sc.className = 'col-cap';
+  sc.style.color = 'var(--dim)';
+  sc.style.fontFamily = 'var(--mono)';
+  sc.style.fontSize = '10px';
+  sc.style.letterSpacing = '1px';
+  sc.textContent = opts.deptTag ? ('→ '+opts.deptTag) : '—';
+  tr.appendChild(sc);
+
+  for (const c of cols) {
+    const slot = opts.slotsForCol(c) || { hours: 0, wos: [] };
+    const cell = document.createElement('td');
+    let klass;
+    if (slot.hours < 0.001) klass = c.weekend ? 'weekend' : 'empty';
+    else if (opts.isInstall) klass = 'install';
+    else klass = tierFor(slot.hours, opts.ceil);
+    cell.className = 'cell ' + klass + (c.weekend?' weekend':'') + (c.monday?' weekstart':'') + (c.key===todayK?' today':'');
+    if (slot.hours > 0.001) cell.textContent = fmtHrs(slot.hours);
+    attachHover(cell, slot, c, escapeHtml(opts.ctx.shopName||opts.ctx.name) + ' · ' + escapeHtml(opts.label), opts.ceil);
+    tr.appendChild(cell);
+  }
+  tbody.appendChild(tr);
+}
+
+// ===========================================================================
+// HOVER TOOLTIP
+// ===========================================================================
+const tip = document.getElementById('tip');
+function attachHover(cell, slot, col, label, ceiling) {
+  cell.addEventListener('mouseenter', e => showTip(e, slot, col, label, ceiling));
+  cell.addEventListener('mousemove',  e => moveTip(e));
+  cell.addEventListener('mouseleave', hideTip);
+  // Click any non-empty cell to drill into the full WO list behind it
+  if (slot && slot.wos && slot.wos.length) {
+    cell.style.cursor = 'pointer';
+    cell.addEventListener('click', () => { hideTip(); showDrill(slot, col, label, ceiling); });
+  }
+}
+
+// ── DRILL-DOWN ─────────────────────────────────────────────────────────────
+function showDrill(slot, col, label, ceiling) {
+  const raw = (slot && slot.wos) ? slot.wos : [];
+  // Dedup by WO id, summing hours (a WO can appear once per routing in aggregated cells)
+  const map = new Map();
+  for (const w of raw) {
+    const k = w.id || w.name || Math.random();
+    if (map.has(k)) map.get(k).hours += w.hours;
+    else map.set(k, { ...w });
+  }
+  const list = [...map.values()].sort((a,b) => b.hours - a.hours);
+  const total = list.reduce((s,w) => s + (w.hours||0), 0);
+
+  document.getElementById('drill-title').textContent = label;
+  document.getElementById('drill-sub').textContent =
+    fmtFullDate(col.date) + (col.weekend ? ' · WEEKEND' : '');
+
+  let stats = `<div class="drill-stat"><span class="lab">Demand</span><span class="val">${fmtHrs(total)||'0'}h</span></div>`;
+  if (ceiling != null) {
+    const u = ceiling > 0 ? total/ceiling : 0;
+    const cls = u > 1 ? 'red' : u > 0.8 ? 'amber' : 'green';
+    stats += `<div class="drill-stat"><span class="lab">Ceiling</span><span class="val">${fmtHrs(ceiling)}h</span></div>`;
+    stats += `<div class="drill-stat"><span class="lab">Utilization</span><span class="val ${cls}">${Math.round(u*100)}%</span></div>`;
+  }
+  stats += `<div class="drill-stat"><span class="lab">Work Orders</span><span class="val">${list.length}</span></div>`;
+  document.getElementById('drill-stats').innerHTML = stats;
+
+  const tbody = document.getElementById('drill-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="drill-empty">No work orders behind this cell.</td></tr>';
+  } else {
+    tbody.innerHTML = list.map(w => {
+      const pct = (w.pctComplete && w.pctComplete > 0) ? Math.round(w.pctComplete*100) + '%' : '—';
+      const rtColor = ROUTING_COLORS[w.routing] || 'var(--dim)';
+      return `<tr>
+        <td class="d-id">${escapeHtml(w.id||'—')}</td>
+        <td class="d-name">${escapeHtml(w.name||'—')}</td>
+        <td class="d-rt" style="color:${rtColor};">${escapeHtml(w.routing||'')}</td>
+        <td class="d-status">${escapeHtml(w.status||'')}</td>
+        <td class="d-pct">${pct}</td>
+        <td class="d-hrs">${fmtHrs(w.hours)}h</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('drill-modal').classList.add('show');
+}
+function closeDrill() {
+  document.getElementById('drill-modal').classList.remove('show');
+}
+// Close drill modal on Escape or backdrop click
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrill(); });
+document.getElementById('drill-modal').addEventListener('click', e => {
+  if (e.target.id === 'drill-modal') closeDrill();
+});
+function showTip(e, slot, col, label, ceiling) {
+  const hours = slot ? slot.hours : 0;
+  let html = '<h4>' + label + '</h4>';
+  html += '<div class="tip-meta">' + fmtFullDate(col.date) + (col.weekend ? ' · WEEKEND' : '') + '</div>';
+  if (ceiling != null) {
+    html += '<div class="tip-stat"><span class="lab">Ceiling</span><span class="val">' + fmtHrs(ceiling) + 'h</span></div>';
+  }
+  html += '<div class="tip-stat"><span class="lab">Demand</span><span class="val">' + fmtHrs(hours) + 'h</span></div>';
+  if (ceiling != null) {
+    const u = ceiling > 0 ? hours/ceiling : 0;
+    const cls = u > 1 ? 'red' : u > 0.8 ? 'amber' : u > 0 ? 'green' : '';
+    html += '<div class="tip-stat"><span class="lab">Utilization</span><span class="val ' + cls + '">' + Math.round(u*100) + '%</span></div>';
+  }
+  if (slot && slot.wos && slot.wos.length) {
+    html += '<div class="tip-divider"></div><ul>';
+    const map = new Map();
+    for (const w of slot.wos) {
+      const k = w.id || w.name;
+      if (map.has(k)) map.get(k).hours += w.hours;
+      else map.set(k, { ...w });
+    }
+    const sorted = [...map.values()].sort((a,b)=>b.hours-a.hours);
+    for (const w of sorted.slice(0, 14)) {
+      const pctTag = (w.pctComplete && w.pctComplete > 0)
+        ? ' <span style="color:var(--amber);font-size:8px;letter-spacing:1px;margin-left:6px;">'+Math.round(w.pctComplete*100)+'%</span>'
+        : '';
+      const idShort = w.id ? w.id.replace(/^TF-\d+-WO-/, '#') : '';
+      html += '<li><span><span class="id">'+escapeHtml(idShort)+'</span><span class="nm">'+escapeHtml(w.name||'')+pctTag+'</span></span><span class="hr">'+fmtHrs(w.hours)+'h</span></li>';
+    }
+    if (sorted.length > 14) html += '<li><span style="color:var(--amber);font-style:italic;">+ '+(sorted.length-14)+' more · click cell for full list</span><span></span></li>';
+    html += '</ul>';
+  }
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  moveTip(e);
+}
+function moveTip(e) {
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + w + 8 > window.innerWidth) x = e.clientX - w - 14;
+  if (y + h + 8 > window.innerHeight) y = e.clientY - h - 14;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+function hideTip(){ tip.style.display = 'none'; }
+
+// ===========================================================================
+// JOBS VIEW
+// ===========================================================================
+function renderJobs(alloc) {
+  const tbody = document.getElementById('jobs-tbody');
+  const rows = STATE.data.projects.map(p => {
+    let hActive = 0, hPending = 0, hExcluded = 0, woCount = 0;
+    for (const wo of STATE.data.workOrders) {
+      if (wo.project !== p.code) continue;
+      woCount++;
+      const h = Number(wo.hours)||0;
+      if (wo.bucket === 'Active') hActive += h;
+      else if (wo.bucket === 'Pending') hPending += h;
+      else hExcluded += h;
+    }
+    return { ...p, hActive, hPending, hExcluded, woCount };
+  }).filter(p => p.woCount > 0);
+
+  // Sort
+  const sf = STATE.jobSort.field, dir = STATE.jobSort.dir === 'asc' ? 1 : -1;
+  rows.sort((a,b) => {
+    let av = a[sf] ?? '', bv = b[sf] ?? '';
+    if (sf === 'installDate') { av = av || '9999'; bv = bv || '9999'; }
+    if (typeof av === 'number') return (av - bv) * dir;
+    return String(av).localeCompare(String(bv)) * dir;
+  });
+
+  document.getElementById('jobs-count').textContent = rows.length + ' jobs · ' + STATE.data.workOrders.length + ' WOs';
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--dim);">No projects with work orders.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(p => {
+    const statusCls = statusPillClass(p.status);
+    return `<tr>
+      <td><span class="pnum">${escapeHtml(p.code)}</span></td>
+      <td>
+        <div class="pname">${escapeHtml(p.shopName||p.name)}</div>
+        <div class="pclient">${escapeHtml(p.client||'—')}</div>
+      </td>
+      <td><span class="status-pill ${statusCls}">${escapeHtml(p.status||'—')}</span></td>
+      <td>${p.installDate ? escapeHtml(fmtShortDate(p.installDate)) : '<span style="color:var(--dim);">—</span>'}</td>
+      <td class="num"><span class="h-active">${p.hActive>0?Math.round(p.hActive):'—'}</span></td>
+      <td class="num"><span class="h-pending">${p.hPending>0?Math.round(p.hPending):'—'}</span></td>
+      <td class="num"><span class="h-excluded">${p.hExcluded>0?Math.round(p.hExcluded):'—'}</span></td>
+      <td class="num" style="color:var(--text);">${p.woCount}</td>
+    </tr>`;
+  }).join('');
+}
+
+function statusPillClass(status) {
+  const s = String(status||'').toLowerCase();
+  if (s.includes('bid')) return 'sp-bidding';
+  if (s.includes('won')) return 'sp-won';
+  if (s.includes('production') || s.includes('pre-prod')) return 'sp-prod';
+  if (s.includes('install')) return 'sp-install';
+  if (s.includes('hold') || s.includes('cancel') || s.includes('complete')) return 'sp-hold';
+  return 'sp-default';
+}
+
+// Sort handlers
+document.querySelectorAll('#jobs-table th').forEach(th => {
+  th.onclick = () => {
+    const f = th.dataset.sort;
+    if (!f) return;
+    if (STATE.jobSort.field === f) STATE.jobSort.dir = STATE.jobSort.dir === 'asc' ? 'desc' : 'asc';
+    else { STATE.jobSort.field = f; STATE.jobSort.dir = 'asc'; }
+    if (STATE.data) renderJobs(buildAllocation());
+  };
+});
+
+// ===========================================================================
+// WO LIST VIEW
+// ===========================================================================
+function populateWOFilters() {
+  const projs = [...new Set(STATE.data.workOrders.map(w => w.project))].filter(Boolean).sort();
+  const depts = [...new Set(STATE.data.workOrders.map(w => w.deptCode))].filter(Boolean).sort();
+  const rts = [...new Set(STATE.data.workOrders.map(w => w.routing))].filter(Boolean).sort();
+  fillSelect('wo-f-proj', projs);
+  fillSelect('wo-f-dept', depts);
+  fillSelect('wo-f-rt', rts);
+}
+function fillSelect(id, vals) {
+  const sel = document.getElementById(id);
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">All</option>' + vals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if (vals.includes(prev)) sel.value = prev;
+}
+
+function renderWOs() {
+  if (!STATE.data) return;
+  const search = (document.getElementById('wo-search').value || '').toLowerCase().trim();
+  const fProj = document.getElementById('wo-f-proj').value;
+  const fDept = document.getElementById('wo-f-dept').value;
+  const fRt = document.getElementById('wo-f-rt').value;
+  const fBucket = document.getElementById('wo-f-bucket').value;
+
+  let rows = STATE.data.workOrders.filter(w => {
+    if (fProj !== 'all' && w.project !== fProj) return false;
+    if (fDept !== 'all' && w.deptCode !== fDept) return false;
+    if (fRt !== 'all' && w.routing !== fRt) return false;
+    if (fBucket !== 'all' && w.bucket !== fBucket) return false;
+    if (search) {
+      const blob = [w.id, w.name, w.shopName, w.project, w.routing].join(' ').toLowerCase();
+      if (!blob.includes(search)) return false;
+    }
+    return true;
+  });
+
+  const sf = STATE.woSort.field, dir = STATE.woSort.dir === 'asc' ? 1 : -1;
+  rows.sort((a,b) => {
+    let av = a[sf] ?? '', bv = b[sf] ?? '';
+    if (sf === 'start' || sf === 'end') { av = av || '9999'; bv = bv || '9999'; }
+    if (sf === 'hours' || sf === 'pct') { av = Number(av)||0; bv = Number(bv)||0; }
+    if (typeof av === 'number') return (av - bv) * dir;
+    return String(av).localeCompare(String(bv)) * dir;
+  });
+
+  document.getElementById('wos-count').textContent = rows.length + ' / ' + STATE.data.workOrders.length + ' WOs';
+
+  const tbody = document.getElementById('wo-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--dim);">No work orders match.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(w => {
+    const bucket = w.bucket || 'Excluded';
+    const bClass = 'bucket-' + bucket.toLowerCase();
+    const rtColor = ROUTING_COLORS[w.routing] || '#888';
+    const pct = w.pctComplete ? Math.round(Number(w.pctComplete)*100) + '%' : '—';
+    return `<tr class="${bClass}">
+      <td><span class="wo-id">${escapeHtml(w.id||'')}</span></td>
+      <td><span class="wo-id">${escapeHtml(w.project||'')}</span></td>
+      <td><span class="wo-name">${escapeHtml(w.shopName||w.name||'')}</span></td>
+      <td><span class="wo-rt-tag" style="color:${rtColor};border-color:${rtColor}88;">${escapeHtml(w.routing||'—')}</span></td>
+      <td>${escapeHtml(w.deptCode||'—')}</td>
+      <td>${escapeHtml(w.status||'—')}</td>
+      <td><span class="wo-bucket-tag wo-${bClass}">${escapeHtml(bucket)}</span></td>
+      <td>${escapeHtml(fmtShortDate(w.start))}</td>
+      <td>${escapeHtml(fmtShortDate(w.end))}</td>
+      <td class="num">${w.hours||0}</td>
+      <td class="num">${pct}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.querySelectorAll('#wo-table th').forEach(th => {
+  th.onclick = () => {
+    const f = th.dataset.sort;
+    if (!f) return;
+    if (STATE.woSort.field === f) STATE.woSort.dir = STATE.woSort.dir === 'asc' ? 'desc' : 'asc';
+    else { STATE.woSort.field = f; STATE.woSort.dir = 'asc'; }
+    renderWOs();
+  };
+});
+
+// ===========================================================================
+// NAVIGATION
+// ===========================================================================
+function navigate(arg) {
+  const step = STATE.rangeDays <= 14 ? 7 : STATE.rangeDays <= 28 ? 14 : STATE.rangeDays <= 56 ? 28 : 56;
+  if (arg === 'today') STATE.anchor = todayUTC();
+  else STATE.anchor = addDays(STATE.anchor || todayUTC(), arg * step);
+  if (STATE.data) renderHeatMap(buildAllocation());
+}
+
+document.querySelectorAll('#range-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#range-toggle button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    STATE.rangeDays = parseInt(b.dataset.days, 10);
+    if (STATE.data) renderHeatMap(buildAllocation());
+  });
+});
+
+document.querySelectorAll('#detail-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#detail-toggle button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    STATE.detail = b.dataset.detail;
+    if (STATE.data) renderHeatMap(buildAllocation());
+  });
+});
+
+document.querySelectorAll('.view-tabs button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.view-tabs button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    STATE.view = b.dataset.view;
+    document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('on'));
+    document.getElementById('view-' + STATE.view).classList.add('on');
+  });
+});
+
+// ===========================================================================
+// LIVE FETCH
+// ===========================================================================
+function openPatModal() {
+  document.getElementById('pat-input').value = localStorage.getItem('tfnyc.v4.pat') || '';
+  document.getElementById('modal-status').textContent = '';
+  document.getElementById('modal-status').className = 'modal-status';
+  document.getElementById('modal').classList.add('show');
+  setTimeout(() => document.getElementById('pat-input').focus(), 50);
+}
+function closePatModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+async function savePatAndFetch() {
+  const pat = document.getElementById('pat-input').value.trim();
+  if (!pat) { setModalStatus('Enter a token.', true); return; }
+  localStorage.setItem('tfnyc.v4.pat', pat);
+  updatePatButton();
+  closePatModal();
+  await doRefresh();
+}
+function setModalStatus(msg, err) {
+  const el = document.getElementById('modal-status');
+  el.textContent = msg;
+  el.className = 'modal-status' + (err ? ' err' : '');
+}
+
+async function doRefresh() {
+  const pat = localStorage.getItem('tfnyc.v4.pat');
+  if (!pat) {
+    openPatModal();
+    setModalStatus('Token required to pull live.', true);
+    return;
+  }
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  btn.textContent = '↻ Loading';
+  try {
+    const headers = { Authorization: 'Bearer ' + pat };
+    const [deptsRaw, projsRaw, wosRaw, companiesRaw] = await Promise.all([
+      atFetchAll(TABLES.departments, headers),
+      atFetchAll(TABLES.projects, headers),
+      atFetchAll(TABLES.workOrders, headers),
+      atFetchAll('tblBOw4fcBNMSpPEi', headers) // Companies (for client name lookup)
+    ]);
+
+    // Build company lookup
+    const companyByRecId = new Map();
+    for (const r of companiesRaw) {
+      companyByRecId.set(r.id, r.fields['Company Name'] || '');
+    }
+
+    // Build departments — keep only Active
+    const deptByRecId = new Map();
+    const departments = deptsRaw
+      .filter(r => {
+        const s = r.fields['Status'];
+        const sn = s && s.name ? s.name : s;
+        return sn === 'Active';
+      })
+      .map(r => {
+        const dept = {
+          recordId: r.id,
+          code: r.fields['Code'] || r.id,
+          name: r.fields['Department Name'] || r.id,
+          weeklyCapacity: Number(r.fields['Total Available Hrs/Week'] || 0)
+        };
+        deptByRecId.set(r.id, dept.code);
+        return dept;
+      })
+      .filter(d => d.weeklyCapacity > 0)
+      .sort((a,b) => b.weeklyCapacity - a.weeklyCapacity);
+
+    // Build projects
+    const projCodeByRecId = new Map();
+    const projects = projsRaw.map(r => {
+      const code = r.fields['Project Number'] || r.id;
+      projCodeByRecId.set(r.id, code);
+      const statusRaw = r.fields['Status'];
+      const status = statusRaw && statusRaw.name ? statusRaw.name : (statusRaw || '');
+      const clientLinks = r.fields['Client'] || [];
+      const clientId = Array.isArray(clientLinks) ? (clientLinks[0]?.id || clientLinks[0]) : clientLinks;
+      const client = (clientId && typeof clientId === 'object') ? clientId.name : (companyByRecId.get(clientId) || '');
+      return {
+        recordId: r.id,
+        code,
+        name: r.fields['Project Name'] || code,
+        shopName: r.fields['Shop Name'] || r.fields['Project Name'] || code,
+        client,
+        status,
+        installDate: r.fields['Install Date'] || null
+      };
+    });
+
+    // Build work orders
+    const workOrders = wosRaw.map(r => {
+      const deptLinks = r.fields['Department'];
+      const deptRecId = Array.isArray(deptLinks) ? (deptLinks[0]?.id || deptLinks[0]) : deptLinks;
+      const deptId = (deptRecId && typeof deptRecId === 'object') ? deptRecId.id : deptRecId;
+      const deptCode = deptByRecId.get(deptId) || '';
+
+      const projLinks = r.fields['Project'];
+      const projRecId = Array.isArray(projLinks) ? (projLinks[0]?.id || projLinks[0]) : projLinks;
+      const projId = (projRecId && typeof projRecId === 'object') ? projRecId.id : projRecId;
+      const projCode = projCodeByRecId.get(projId) || '';
+
+      const statusRaw = r.fields['Status'];
+      const status = statusRaw && statusRaw.name ? statusRaw.name : (statusRaw || '');
+      const routingRaw = r.fields['Routing'];
+      const routing = routingRaw && routingRaw.name ? routingRaw.name : (routingRaw || 'Other');
+      const bucket = r.fields['Capacity Bucket'] || 'Excluded';
+      const pct = Number(r.fields['% Complete (Lead)'] || 0);
+
+      return {
+        recordId: r.id,
+        id: r.fields['WO ID'] || r.id,
+        name: r.fields['Name'] || '',
+        shopName: r.fields['Shop Name'] || r.fields['Name'] || '',
+        project: projCode,
+        deptCode,
+        routing,
+        status,
+        bucket,
+        start: r.fields['Planned Start'] || null,
+        end: r.fields['Planned End'] || null,
+        hours: Number(r.fields['Estimated Hours'] || 0),
+        pctComplete: isFinite(pct) ? pct : 0
+      };
+    });
+
+    STATE.data = {
+      fetchedAt: new Date().toISOString(),
+      departments, projects, workOrders
+    };
+    STATE.expandedProjects = new Set(); // start collapsed
+    saveCache();
+    render();
+  } catch (e) {
+    console.error(e);
+    openPatModal();
+    setModalStatus('Fetch failed: ' + (e.message || String(e)), true);
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = '↻ Refresh';
+  }
+}
+
+async function atFetchAll(tableIdOrName, headers) {
+  let all = [], offset = null;
+  const base = 'https://api.airtable.com/v0/' + BASE_ID + '/' + tableIdOrName;
+  do {
+    const u = base + '?pageSize=100' + (offset ? '&offset=' + encodeURIComponent(offset) : '');
+    const r = await fetch(u, { headers });
+    if (!r.ok) {
+      const body = await r.text();
+      throw new Error('HTTP ' + r.status + ' — ' + body.slice(0, 200));
+    }
+    const j = await r.json();
+    all = all.concat(j.records || []);
+    offset = j.offset;
+  } while (offset);
+  return all;
+}
+
+// ===========================================================================
+// CACHE
+// ===========================================================================
+const CACHE_KEY = 'tfnyc.v4.cache';
+function saveCache() {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(STATE.data));
+  } catch (e) { /* ignore */ }
+}
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (!obj || !Array.isArray(obj.workOrders)) return false;
+    STATE.data = obj;
+    return true;
+  } catch (e) { return false; }
+}
+function clearAllAndReset() {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem('tfnyc.v4.pat');
+  } catch (e) {}
+  STATE.data = null;
+  closePatModal();
+  updatePatButton();
+  render();
+}
+
+function updatePatButton() {
+  const btn = document.getElementById('pat-btn');
+  if (localStorage.getItem('tfnyc.v4.pat')) {
+    btn.classList.add('set');
+    btn.textContent = 'PAT ✓';
+  } else {
+    btn.classList.remove('set');
+    btn.textContent = 'PAT';
+  }
+}
+
+// ===========================================================================
+// BOOT
+// ===========================================================================
+STATE.anchor = todayUTC();
+updatePatButton();
+
+// Boot priority: cached live data → snapshot → empty state
+if (!loadCache()) {
+  STATE.data = SNAPSHOT;
+}
+render();
+
+// If PAT exists, refresh in the background to overwrite snapshot/cache with live data
+if (localStorage.getItem('tfnyc.v4.pat')) {
+  doRefresh();
+}
+
+// Tick fetch-stamp every 30s so "X min ago" stays current
+setInterval(renderFetchStamp, 30000);
+</script>
+</body>
+</html>
